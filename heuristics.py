@@ -217,6 +217,75 @@ class KMeans(object):
         # Repeat until convergence (points stop changing clusters)
         return self.clusters
 
+    def k_popular_initial_heuristic(self, threshold=10):
+        # If the 'distances' variable does not exist, make it
+        if not hasattr(self, 'distances'):
+            self.calculate_distance_between_pairs()
+
+        npoints = self.data.shape[0]
+        
+        # Initially all points are in cluster 0
+        self.clusters = np.zeros(npoints)
+
+        # Calculate mean of distances
+        meandist = np.mean(self.distances)
+
+        # Find the number of neighbors with distance > mean that each point has
+        morethanmean = np.where(self.distances > meandist)
+        numneigh = np.zeros(npoints, dtype=int)
+       
+        for point in range(npoints):
+            numneigh[point] = np.count_nonzero(morethanmean[0] == point)
+        
+        # Choose the k points with more neighbors as the center indexes
+        centers_indexes = np.zeros(self.k, dtype=int)
+        centers_indexes[0:] = \
+            np.argsort(numneigh)[-(self.k):][::-1]
+
+        # From then we apply lloyds algorithm
+        for center in centers_indexes:
+            self.clusters[center] = center
+
+        changed_cluster_prev = 1
+        nochange = 0
+        iteration = 1
+        while nochange < threshold:
+            print("Iteration:: ", iteration)
+            changed_cluster_cur = 0
+
+            for point in range(npoints):
+                # Get distances from point to the centers, in the order:
+                # [dist_to_center_0, dist_to_center_1, ...]
+                distance_to_centers = self.distances[point, centers_indexes]
+                # Get index of smallest distance
+                closest_center = np.argmin(distance_to_centers)
+                # Assign the point to the cluster with center on smallest distance
+                if self.clusters[point] != centers_indexes[closest_center]:
+                    changed_cluster_cur += 1
+                self.clusters[point] = centers_indexes[closest_center]
+                # Calculate new centroid for cluster in which the point was added
+                points_in_cluster = np.where(self.clusters == centers_indexes[closest_center])[0]
+                centroid = np.mean(self.data[points_in_cluster, :], axis=0)
+                closest_point_index = \
+                    np.argmin(euclidean_distances(X=heu.data,
+                                                  Y=centroid.reshape(1, -1)))
+                # Update points that were already in the cluster that changed
+                for p in points_in_cluster:
+                    self.clusters[p] = closest_point_index
+
+                # Remove old centroid and add new one to list of centers
+                centers_indexes = np.append(centers_indexes, closest_point_index)
+                centers_indexes = np.delete(centers_indexes, closest_center)
+
+            # Check if there were any changes of clusters
+            if changed_cluster_prev == changed_cluster_cur:
+                nochange += 1
+            changed_cluster_prev = changed_cluster_cur
+            print(changed_cluster_cur, ' points changed cluster')
+            iteration += 1
+        return self.clusters
+
+        
 
 if __name__ == "__main__":
     filename = argv[1]
@@ -230,9 +299,11 @@ if __name__ == "__main__":
     print(data)
     print(data.values)
     heu = KMeans(data.values, 1, 5)
-    c = heu.lloyd_heuristic()
-    print(c)
-    d = heu.macqueen_heuristic()
-    print(d)
-    e = heu.k_furthest_initial_heuristic()
-    print(e)
+    #c = heu.lloyd_heuristic()
+    #print(c)
+    #d = heu.macqueen_heuristic()
+    #print(d)
+    #e = heu.k_furthest_initial_heuristic()
+    #print(e)
+    f = heu.k_popular_initial_heuristic()
+    print(f)
