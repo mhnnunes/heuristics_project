@@ -25,9 +25,17 @@ class KMeans(object):
     def calculate_distance_between_pairs(self):
         self.distances = euclidean_distances(self.data)
 
+    def __calculate_sum_of_squares(self):
+        # Calculate distance between points and clusters
+        npoints = self.data.shape[0]
+        points = np.arange(npoints)
+        # Return sum of squares of distances between points and their
+        # respective center (cluster)
+        return np.sum(np.square(self.distances[points, self.clusters[points]]))
+
     def __reassign_points_to_clusters(self, centers_indexes, npoints):
         # Initially all points are in cluster 0
-        clusters = np.zeros(npoints)
+        clusters = np.zeros(npoints, dtype=int)
         for point in range(npoints):
             # Get distances from point to the centers, in the order:
             # [dist_to_center_0, dist_to_center_1, ...]
@@ -35,7 +43,7 @@ class KMeans(object):
             # Get index of smallest distance
             closest_center = np.argmin(distance_to_centers)
             # Assign the point to the cluster with center on smallest distance
-            clusters[point] = centers_indexes[closest_center]
+            clusters[point] = int(centers_indexes[closest_center])
         return clusters
 
     def lloyd_heuristic(self, threshold=10):
@@ -45,7 +53,7 @@ class KMeans(object):
 
         npoints = self.data.shape[0]
         # Initially all points are in cluster 0
-        self.clusters = np.zeros(npoints)
+        self.clusters = np.zeros(npoints, dtype=int)
         # Define k initial clusters randomly
         #    - Choose k points randomly
         # Choose k indexes from data
@@ -62,7 +70,7 @@ class KMeans(object):
         nochange = 0
         iteration = 1
         while nochange < threshold:
-            print("Iteration:: ", iteration)
+            # print("Iteration:: ", iteration)
             new_centers_indexes = []
             changed_cluster_cur = 0
             for center in centers_indexes:
@@ -92,9 +100,11 @@ class KMeans(object):
             # Save current number of points that changed cluster
             changed_cluster_prev = changed_cluster_cur
             iteration += 1
-            print(changed_cluster_cur, ' points changed cluster')
+            # print(changed_cluster_cur, ' points changed cluster')
         # Repeat until convergence (points stop changing clusters)
-        return self.clusters
+        # Calculate objective function value
+        ssq = self.__calculate_sum_of_squares()
+        return self.clusters, ssq
 
     def macqueen_heuristic(self, threshold=10):
         # If the 'distances' variable does not exist, make it
@@ -116,7 +126,7 @@ class KMeans(object):
         nochange = 0
         iteration = 1
         while nochange < threshold:
-            print("Iteration:: ", iteration)
+            # print("Iteration:: ", iteration)
             changed_cluster_cur = 0
 
             for point in range(npoints):
@@ -125,12 +135,16 @@ class KMeans(object):
                 distance_to_centers = self.distances[point, centers_indexes]
                 # Get index of smallest distance
                 closest_center = np.argmin(distance_to_centers)
-                # Assign the point to the cluster with center on smallest distance
+                # Assign the point to the cluster with center on smallest
+                # distance
                 if self.clusters[point] != centers_indexes[closest_center]:
                     changed_cluster_cur += 1
                 self.clusters[point] = centers_indexes[closest_center]
-                # Calculate new centroid for cluster in which the point was added
-                points_in_cluster = np.where(self.clusters == centers_indexes[closest_center])[0]
+                # Calculate new centroid for cluster in which the point was
+                # added
+                points_in_cluster = \
+                    np.where(self.clusters ==
+                             centers_indexes[closest_center])[0]
                 centroid = np.mean(self.data[points_in_cluster, :], axis=0)
                 closest_point_index = \
                     np.argmin(euclidean_distances(X=heu.data,
@@ -140,16 +154,20 @@ class KMeans(object):
                     self.clusters[p] = closest_point_index
 
                 # Remove old centroid and add new one to list of centers
-                centers_indexes = np.append(centers_indexes, closest_point_index)
+                centers_indexes = np.append(centers_indexes,
+                                            closest_point_index)
                 centers_indexes = np.delete(centers_indexes, closest_center)
 
             # Check if there were any changes of clusters
             if changed_cluster_prev == changed_cluster_cur:
                 nochange += 1
             changed_cluster_prev = changed_cluster_cur
-            print(changed_cluster_cur, ' points changed cluster')
+            # print(changed_cluster_cur, ' points changed cluster')
             iteration += 1
-        return self.clusters
+        # Calculate objective function value
+        self.clusters = self.clusters.astype(int)
+        ssq = self.__calculate_sum_of_squares()
+        return self.clusters, ssq
 
     def k_furthest_initial_heuristic(self, threshold=10):
         # If the 'distances' variable does not exist, make it
@@ -158,7 +176,7 @@ class KMeans(object):
 
         npoints = self.data.shape[0]
         # Initially all points are in cluster 0
-        self.clusters = np.zeros(npoints)
+        self.clusters = np.zeros(npoints, dtype=int)
         # Choose 1 point randomly
         centers_indexes = np.zeros(self.k, dtype=int)
         centers_indexes[0] = np.random.randint(npoints, size=1)
@@ -167,9 +185,10 @@ class KMeans(object):
         # argsort return the indexes which would sort the array in ascending
         # order, then we take the last k-1 elements of this array with
         # [(self.k-1):] and return it backwards with [::-1]
-        print(centers_indexes[0])
+        # print(centers_indexes[0])
         centers_indexes[1:] = \
-            np.argsort(self.distances[int(centers_indexes[0]), :])[-(self.k - 1):][::-1]
+            np.argsort(self.distances[int(centers_indexes[0]), :])[-(self.k -
+                                                                     1):][::-1]
         # From then we apply lloyds algorithm
         # Use centers to index distance matrix, then sort
         self.clusters = self.__reassign_points_to_clusters(centers_indexes,
@@ -183,7 +202,7 @@ class KMeans(object):
         nochange = 0
         iteration = 1
         while nochange < threshold:
-            print("Iteration:: ", iteration)
+            # print("Iteration:: ", iteration)
             new_centers_indexes = []
             changed_cluster_cur = 0
             for center in centers_indexes:
@@ -213,9 +232,12 @@ class KMeans(object):
             # Save current number of points that changed cluster
             changed_cluster_prev = changed_cluster_cur
             iteration += 1
-            print(changed_cluster_cur, ' points changed cluster')
+            # print(changed_cluster_cur, ' points changed cluster')
         # Repeat until convergence (points stop changing clusters)
-        return self.clusters
+        # Calculate objective function value
+        self.clusters = self.clusters.astype(int)
+        ssq = self.__calculate_sum_of_squares()
+        return self.clusters, ssq
 
 
 if __name__ == "__main__":
@@ -230,9 +252,15 @@ if __name__ == "__main__":
     print(data)
     print(data.values)
     heu = KMeans(data.values, 1, 5)
-    c = heu.lloyd_heuristic()
-    print(c)
-    d = heu.macqueen_heuristic()
-    print(d)
-    e = heu.k_furthest_initial_heuristic()
-    print(e)
+    print("LLOYD HEURISTIC")
+    c, ssq = heu.lloyd_heuristic()
+    # print(c)
+    print('Sum of squares:: ', ssq)
+    print('MACQUEEN HEURISTIC')
+    d, ssq = heu.macqueen_heuristic()
+    # print(d)
+    print('Sum of squares:: ', ssq)
+    print('K FURTHEST HEURISTIC')
+    e, ssq = heu.k_furthest_initial_heuristic()
+    # print(e)
+    print('Sum of squares:: ', ssq)
