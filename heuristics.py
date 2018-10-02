@@ -255,6 +255,81 @@ class KMeans(object):
         ssq = self.__calculate_sum_of_squares()
         return self.clusters, ssq
 
+    def k_popular_initial_heuristic(self, threshold=10):
+        # If the 'distances' variable does not exist, make it
+        if not hasattr(self, 'distances'):
+            self.calculate_distance_between_pairs()
+
+        npoints = self.data.shape[0]
+        
+        # Initially all points are in cluster 0
+        self.clusters = np.zeros(npoints)
+
+        # Calculate mean of distances
+        meandist = np.mean(self.distances)
+
+        # Find the number of neighbors with distance > mean that each point has
+        morethanmean = np.where(self.distances > meandist)
+        numneigh = np.zeros(npoints, dtype=int)
+       
+        for point in range(npoints):
+            numneigh[point] = np.count_nonzero(morethanmean[0] == point)
+        
+        # Choose the k points with more neighbors as the center indexes
+        centers_indexes = np.zeros(self.k, dtype=int)
+        centers_indexes[0:] = \
+            np.argsort(numneigh)[-(self.k):][::-1]
+
+        # From then we apply lloyds algorithm
+        # Use centers to index distance matrix, then sort
+        self.clusters = self.__reassign_points_to_clusters(centers_indexes,
+                                                           npoints)
+
+        # Number of points that changed cluster from one iteration to another
+        changed_cluster_prev = 1
+        changed_cluster_cur = 0
+        # Mark the number of iterations in which the number of points that
+        # have changed cluster is the same from the last iteration
+        nochange = 0
+        iteration = 1
+        while nochange < threshold:
+            # print("Iteration:: ", iteration)
+            new_centers_indexes = []
+            changed_cluster_cur = 0
+            for center in centers_indexes:
+                # Get indexes of points assigned to center
+                points_in_cluster = np.where(self.clusters == center)[0]
+                # Calculate centroid
+                centroid = np.mean(self.data[points_in_cluster, :], axis=0)
+                # print(centroid)
+                # Get closest point to centroid
+                closest_point_index = \
+                    np.argmin(euclidean_distances(X=heu.data,
+                                                  Y=centroid.reshape(1, -1)))
+                new_centers_indexes.append(closest_point_index)
+            # end for loop
+            centers_indexes = np.array(new_centers_indexes)
+            # Reassign points to new clusters
+            cur_clusters = self.__reassign_points_to_clusters(centers_indexes,
+                                                              npoints)
+            # Count how many points changed clusters
+            changed_cluster_cur = \
+                np.count_nonzero(self.clusters - cur_clusters)
+            # No change since last iteration
+            if changed_cluster_cur == changed_cluster_prev:
+                nochange += 1
+            # Save current clusters
+            self.clusters = cur_clusters
+            # Save current number of points that changed cluster
+            changed_cluster_prev = changed_cluster_cur
+            iteration += 1
+            # print(changed_cluster_cur, ' points changed cluster')
+        # Repeat until convergence (points stop changing clusters)
+        # Calculate objective function value
+        self.clusters = self.clusters.astype(int)
+        ssq = self.__calculate_sum_of_squares()
+        return self.clusters, ssq
+
 
 if __name__ == "__main__":
     filename = argv[1]
@@ -288,6 +363,10 @@ if __name__ == "__main__":
     # print(e)
     plot_clustering_results(Y, le.fit_transform(d), data['diagnosis'],
                             'K-FURTHEST')
+    print('Sum of squares:: ', ssq)
+    print('K POPULAR HEURISTIC')
+    f, ssq = heu.k_popular_initial_heuristic()
+    print('Sum of squares:: ', ssq)
     print('Sum of squares:: ', ssq)
 
 
