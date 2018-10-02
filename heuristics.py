@@ -12,16 +12,27 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics.pairwise import euclidean_distances
 
 
-def plot_clustering_results(Y, results, actual_clusters, heuristic):
+def plot_clustering_results(Y, results, heuristic, actual_clusters=None):
     # PLOT CLUSTERING RESULT
-    f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
-    ax1.scatter(Y[:, 0], Y[:, 1], c=le.fit_transform(results),
-                cmap="jet", edgecolor="None", alpha=0.35)
-    ax1.set_title(heuristic)
-    ax2.scatter(Y[:, 0], Y[:, 1], c=actual_clusters,
-                cmap="jet", edgecolor="None", alpha=0.35)
-    ax2.set_title('Actual clusters')
-    plt.show()
+    # f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+    if actual_clusters is not None:
+        f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+        ax1.scatter(Y[:, 0], Y[:, 1], c=results,
+                    cmap="jet", edgecolor="None", alpha=0.35)
+        ax1.set_title(heuristic)
+        ax2.scatter(Y[:, 0], Y[:, 1], c=actual_clusters,
+                    cmap="jet", edgecolor="None", alpha=0.35)
+        ax2.set_title('Actual clusters')
+        plt.show()
+    else:
+        f, ax1 = plt.subplots(1, 1, sharey=True)
+        ax1.scatter(Y[:, 0], Y[:, 1], c=results,
+                    cmap="jet", edgecolor="None", alpha=0.35)
+        ax1.set_title(heuristic)
+        # ax2.scatter(Y[:, 0], Y[:, 1], c=actual_clusters,
+        #             cmap="jet", edgecolor="None", alpha=0.35)
+        # ax2.set_title('Actual clusters')
+        plt.show()
 
 
 class KMeans(object):
@@ -336,38 +347,46 @@ if __name__ == "__main__":
     data = read_input(filename)
     # pre-process data
     # pre-processing breast cancer data
-    data = data.drop('id', axis=1)
-    data = data.drop('Unnamed: 32', axis=1)
-    data['diagnosis'] = data['diagnosis'].map({'M': 1, 'B': 0})
+    # data = data.drop('id', axis=1)
+    # data = data.drop('Unnamed: 32', axis=1)
+    # data['diagnosis'] = data['diagnosis'].map({'M': 1, 'B': 0})
     # data = data.drop('diagnosis', axis=1)
     # print(data)
     # print(data.values)
     tsne = TSNE(verbose=1, perplexity=40, n_iter=4000)
     le = LabelEncoder()
-    X = data.drop('diagnosis', axis=1).values
+    # X = data.drop('diagnosis', axis=1).values
+    X = data.values
     Y = tsne.fit_transform(scale(X))
-    heu = KMeans(X, 1, 2)
+    heu = KMeans(X, 1, 6)
     print("LLOYD HEURISTIC")
     c, ssq = heu.lloyd_heuristic()
     # print(le.fit_transform(c))
-    plot_clustering_results(Y, le.fit_transform(c), data['diagnosis'], 'LLOYD')
+    # plot_clustering_results(Y, le.fit_transform(c),
+    #                         'LLOYD', data['diagnosis'])
+    plot_clustering_results(Y, le.fit_transform(c), 'LLOYD')
     print('Sum of squares:: ', ssq)
     print('MACQUEEN HEURISTIC')
     d, ssq = heu.macqueen_heuristic()
     # print(d)
-    plot_clustering_results(Y, le.fit_transform(d), data['diagnosis'],
-                            'MACQUEEN')
+    # plot_clustering_results(Y, le.fit_transform(d), 'MACQUEEN',
+    #                         data['diagnosis'])
+    plot_clustering_results(Y, le.fit_transform(d), 'MACQUEEN')
     print('Sum of squares:: ', ssq)
     print('K FURTHEST HEURISTIC')
     e, ssq = heu.k_furthest_initial_heuristic()
     # print(e)
-    plot_clustering_results(Y, le.fit_transform(d), data['diagnosis'],
-                            'K-FURTHEST')
+    # plot_clustering_results(Y, le.fit_transform(d), 'K-FURTHEST',
+    #                         data['diagnosis'])
+    plot_clustering_results(Y, le.fit_transform(d), 'K-FURTHEST')
     print('Sum of squares:: ', ssq)
     print('K POPULAR HEURISTIC')
     f, ssq = heu.k_popular_initial_heuristic()
+    # plot_clustering_results(Y, le.fit_transform(d), 'K-POPULAR',
+    #                         data['diagnosis'])
+    plot_clustering_results(Y, le.fit_transform(d), 'K-POPULAR')
     print('Sum of squares:: ', ssq)
-    print('Sum of squares:: ', ssq)
+    # print('Sum of squares:: ', ssq)
 
 
 # import pandas as pd
