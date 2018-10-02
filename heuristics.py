@@ -361,12 +361,13 @@ if __name__ == "__main__":
     print('K FURTHEST HEURISTIC')
     e, ssq = heu.k_furthest_initial_heuristic()
     # print(e)
-    plot_clustering_results(Y, le.fit_transform(d), data['diagnosis'],
+    plot_clustering_results(Y, le.fit_transform(e), data['diagnosis'],
                             'K-FURTHEST')
     print('Sum of squares:: ', ssq)
     print('K POPULAR HEURISTIC')
     f, ssq = heu.k_popular_initial_heuristic()
-    print('Sum of squares:: ', ssq)
+    plot_clustering_results(Y, le.fit_transform(f), data['diagnosis'],
+                            'K-POPULAR')
     print('Sum of squares:: ', ssq)
 
 
