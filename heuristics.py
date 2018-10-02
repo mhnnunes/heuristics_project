@@ -5,7 +5,23 @@
 import numpy as np
 from sys import argv
 from io_utils import read_input
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE  # Dimensionality reduction for visualization
+from sklearn.preprocessing import scale
+from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics.pairwise import euclidean_distances
+
+
+def plot_clustering_results(Y, results, actual_clusters, heuristic):
+    # PLOT CLUSTERING RESULT
+    f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+    ax1.scatter(Y[:, 0], Y[:, 1], c=le.fit_transform(results),
+                cmap="jet", edgecolor="None", alpha=0.35)
+    ax1.set_title(heuristic)
+    ax2.scatter(Y[:, 0], Y[:, 1], c=actual_clusters,
+                cmap="jet", edgecolor="None", alpha=0.35)
+    ax2.set_title('Actual clusters')
+    plt.show()
 
 
 class KMeans(object):
@@ -248,19 +264,55 @@ if __name__ == "__main__":
     data = data.drop('id', axis=1)
     data = data.drop('Unnamed: 32', axis=1)
     data['diagnosis'] = data['diagnosis'].map({'M': 1, 'B': 0})
-    data = data.drop('diagnosis', axis=1)
-    print(data)
-    print(data.values)
-    heu = KMeans(data.values, 1, 5)
+    # data = data.drop('diagnosis', axis=1)
+    # print(data)
+    # print(data.values)
+    tsne = TSNE(verbose=1, perplexity=40, n_iter=4000)
+    le = LabelEncoder()
+    X = data.drop('diagnosis', axis=1).values
+    Y = tsne.fit_transform(scale(X))
+    heu = KMeans(X, 1, 2)
     print("LLOYD HEURISTIC")
     c, ssq = heu.lloyd_heuristic()
-    # print(c)
+    # print(le.fit_transform(c))
+    plot_clustering_results(Y, le.fit_transform(c), data['diagnosis'], 'LLOYD')
     print('Sum of squares:: ', ssq)
     print('MACQUEEN HEURISTIC')
     d, ssq = heu.macqueen_heuristic()
     # print(d)
+    plot_clustering_results(Y, le.fit_transform(d), data['diagnosis'],
+                            'MACQUEEN')
     print('Sum of squares:: ', ssq)
     print('K FURTHEST HEURISTIC')
     e, ssq = heu.k_furthest_initial_heuristic()
     # print(e)
+    plot_clustering_results(Y, le.fit_transform(d), data['diagnosis'],
+                            'K-FURTHEST')
     print('Sum of squares:: ', ssq)
+
+
+# import pandas as pd
+# from io_utils import read_input 
+# from sklearn.manifold import TSNE
+# from sklearn.cluster import KMeans
+# from sklearn.preprocessing import scale
+
+# filename = 'dataset/breast_cancer.csv' 
+# data = read_input(filename)
+# pre-process data
+# pre-processing breast cancer data
+# data = data.drop('id', axis=1)
+# data = data.drop('Unnamed: 32', axis=1)
+# data['diagnosis'] = data['diagnosis'].map({'M': 1, 'B': 0})
+# data = data.drop('diagnosis', axis=1)
+# print(data)
+# print(data.values)
+
+# datas = pd.DataFrame(scale(data))
+# datas.columns = list(data.columns)
+
+# X = datas.values
+# tsne = TSNE(verbose=1, perplexity=40, n_iter=4000)
+# Y = tsne.fit_transform(X)
+# kmns = KMeans(n_clusters=2, init='k-means++', n_init=10, max_iter=300, tol=0.0001, precompute_distances='auto', verbose=0, random_state=None, copy_x=True, n_jobs=1, algorithm='auto')
+# kY = kmns.fit_predict(X)
