@@ -5,6 +5,7 @@
 import numpy as np
 from sys import argv
 from io_utils import read_input
+from io_utils import parse_breast_cancer
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE  # Dimensionality reduction for visualization
 from sklearn.preprocessing import scale
@@ -23,7 +24,8 @@ def plot_clustering_results(Y, results, heuristic, actual_clusters=None):
         ax2.scatter(Y[:, 0], Y[:, 1], c=actual_clusters,
                     cmap="jet", edgecolor="None", alpha=0.35)
         ax2.set_title('Actual clusters')
-        plt.show()
+        # plt.show()
+        plt.savefig(str(heuristic) + '.png')
     else:
         f, ax1 = plt.subplots(1, 1, sharey=True)
         ax1.scatter(Y[:, 0], Y[:, 1], c=results,
@@ -32,7 +34,8 @@ def plot_clustering_results(Y, results, heuristic, actual_clusters=None):
         # ax2.scatter(Y[:, 0], Y[:, 1], c=actual_clusters,
         #             cmap="jet", edgecolor="None", alpha=0.35)
         # ax2.set_title('Actual clusters')
-        plt.show()
+        # plt.show()
+        plt.savefig(str(heuristic) + '.png')
 
 
 class KMeans(object):
@@ -272,7 +275,6 @@ class KMeans(object):
             self.calculate_distance_between_pairs()
 
         npoints = self.data.shape[0]
-        
         # Initially all points are in cluster 0
         self.clusters = np.zeros(npoints)
 
@@ -282,10 +284,10 @@ class KMeans(object):
         # Find the number of neighbors with distance > mean that each point has
         morethanmean = np.where(self.distances > meandist)
         numneigh = np.zeros(npoints, dtype=int)
-       
+
         for point in range(npoints):
             numneigh[point] = np.count_nonzero(morethanmean[0] == point)
-        
+
         # Choose the k points with more neighbors as the center indexes
         centers_indexes = np.zeros(self.k, dtype=int)
         centers_indexes[0:] = \
@@ -345,46 +347,41 @@ class KMeans(object):
 if __name__ == "__main__":
     filename = argv[1]
     data = read_input(filename)
-    # pre-process data
-    # pre-processing breast cancer data
-    # data = data.drop('id', axis=1)
-    # data = data.drop('Unnamed: 32', axis=1)
-    # data['diagnosis'] = data['diagnosis'].map({'M': 1, 'B': 0})
-    # data = data.drop('diagnosis', axis=1)
-    # print(data)
-    # print(data.values)
     tsne = TSNE(verbose=1, perplexity=40, n_iter=4000)
     le = LabelEncoder()
-    # X = data.drop('diagnosis', axis=1).values
-    X = data.values
+    # pre-process data
+    # pre-processing breast cancer data
+    X, label = parse_breast_cancer(data)
+    X = X.values
+    print(X)
     Y = tsne.fit_transform(scale(X))
-    heu = KMeans(X, 1, 6)
+    heu = KMeans(X, 1, 2)
     print("LLOYD HEURISTIC")
     c, ssq = heu.lloyd_heuristic()
     # print(le.fit_transform(c))
-    # plot_clustering_results(Y, le.fit_transform(c),
-    #                         'LLOYD', data['diagnosis'])
-    plot_clustering_results(Y, le.fit_transform(c), 'LLOYD')
+    plot_clustering_results(Y, le.fit_transform(c),
+                            'LLOYD', data['diagnosis'])
+    # plot_clustering_results(Y, le.fit_transform(c), 'LLOYD')
     print('Sum of squares:: ', ssq)
     print('MACQUEEN HEURISTIC')
     d, ssq = heu.macqueen_heuristic()
     # print(d)
-    # plot_clustering_results(Y, le.fit_transform(d), 'MACQUEEN',
-    #                         data['diagnosis'])
-    plot_clustering_results(Y, le.fit_transform(d), 'MACQUEEN')
+    plot_clustering_results(Y, le.fit_transform(d),
+                            'MACQUEEN', label)
+    # plot_clustering_results(Y, le.fit_transform(d), 'MACQUEEN')
     print('Sum of squares:: ', ssq)
     print('K FURTHEST HEURISTIC')
     e, ssq = heu.k_furthest_initial_heuristic()
     # print(e)
-    # plot_clustering_results(Y, le.fit_transform(d), 'K-FURTHEST',
-    #                         data['diagnosis'])
-    plot_clustering_results(Y, le.fit_transform(d), 'K-FURTHEST')
+    plot_clustering_results(Y, le.fit_transform(e), 'K-FURTHEST',
+                            label)
+    # plot_clustering_results(Y, le.fit_transform(d), 'K-FURTHEST')
     print('Sum of squares:: ', ssq)
     print('K POPULAR HEURISTIC')
     f, ssq = heu.k_popular_initial_heuristic()
-    # plot_clustering_results(Y, le.fit_transform(d), 'K-POPULAR',
-    #                         data['diagnosis'])
-    plot_clustering_results(Y, le.fit_transform(d), 'K-POPULAR')
+    plot_clustering_results(Y, le.fit_transform(f), 'K-POPULAR',
+                            label)
+    # plot_clustering_results(Y, le.fit_transform(d), 'K-POPULAR')
     print('Sum of squares:: ', ssq)
     # print('Sum of squares:: ', ssq)
 
