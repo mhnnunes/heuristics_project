@@ -74,7 +74,7 @@ def test_datasets(datadir, outdir, verbose=False):
                                   axis=0)
                     plot_clustering_results(X, clusters_lloyd, 'lloyd', labels,
                                             join(plots_dir, filename.split('.')[0] +
-                                                 '_lloyd' + '.png'))
+                                                 '_k=' + str(k) + '_lloyd' + '.png'))
                 # BEGIN TEST: MACQUEEN HEURISTIC
                 before = default_timer()
                 try:
@@ -108,7 +108,7 @@ def test_datasets(datadir, outdir, verbose=False):
                     plot_clustering_results(X, clusters_mcq, 'macqueen',
                                             labels,
                                             join(plots_dir, filename.split('.')[0] +
-                                                 '_macqueen' + '.png'))
+                                                 '_k=' + str(k) + '_macqueen' + '.png'))
                 # BEGIN TEST: K-FURTHEST HEURISTIC
                 before = default_timer()
                 try:
@@ -142,7 +142,7 @@ def test_datasets(datadir, outdir, verbose=False):
                     plot_clustering_results(X, clusters_kfu, 'k-furthest',
                                             labels,
                                             join(plots_dir, filename.split('.')[0] +
-                                                 '_k-furthest' + '.png'))
+                                                 '_k=' + str(k) + '_k-furthest' + '.png'))
                 # BEGIN TEST: K-POPULAR HEURISTIC
                 before = default_timer()
                 try:
@@ -176,7 +176,7 @@ def test_datasets(datadir, outdir, verbose=False):
                     plot_clustering_results(X, clusters_kpp, 'k-popular',
                                             labels,
                                             join(plots_dir, filename.split('.')[0] +
-                                                 '_k-popular' + '.png'))
+                                                 '_k=' + str(k) + '_k-popular' + '.png'))
             results.to_csv(join(outdir, filename.split('.')[0] + '_' +
                                 'results.csv'),
                            index=False)
