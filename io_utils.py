@@ -70,7 +70,7 @@ def parse_synthetic_dataset(data):
     return data[['X', 'Y']].values, data['class']
 
 
-def plot_clustering_results(Y, results, heuristic, actual_clusters=None, dir=''):
+def plot_clustering_results(Y, results, heuristic, actual_clusters=None, fn=''):
     # PLOT CLUSTERING RESULT
     if actual_clusters is not None:
         f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)

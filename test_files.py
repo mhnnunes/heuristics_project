@@ -68,7 +68,8 @@ def test_datasets(datadir, outdir, verbose=False):
                                                                   'ssq'])],
                                   axis=0)
                     plot_clustering_results(X, clusters_lloyd, 'lloyd', labels,
-                                            plots_dir)
+                                            join(plots_dir, filename,
+                                                 '_lloyd' + '.png'))
                 # BEGIN TEST: MACQUEEN HEURISTIC
                 before = default_timer()
                 try:
@@ -100,7 +101,9 @@ def test_datasets(datadir, outdir, verbose=False):
                                                                   'ssq'])],
                                   axis=0)
                     plot_clustering_results(X, clusters_mcq, 'macqueen',
-                                            labels, plots_dir)
+                                            labels,
+                                            join(plots_dir, filename,
+                                                 '_macqueen' + '.png'))
                 # BEGIN TEST: K-FURTHEST HEURISTIC
                 before = default_timer()
                 try:
@@ -132,7 +135,9 @@ def test_datasets(datadir, outdir, verbose=False):
                                                                   'ssq'])],
                                   axis=0)
                     plot_clustering_results(X, clusters_kfu, 'k-furthest',
-                                            labels, plots_dir)
+                                            labels,
+                                            join(plots_dir,
+                                                 'k-furthest' + '.png'))
                 # BEGIN TEST: K-POPULAR HEURISTIC
                 before = default_timer()
                 try:
@@ -164,7 +169,9 @@ def test_datasets(datadir, outdir, verbose=False):
                                                                   'ssq'])],
                                   axis=0)
                     plot_clustering_results(X, clusters_kpp, 'k-popular',
-                                            labels, plots_dir)
+                                            labels,
+                                            join(plots_dir,
+                                                 'k-popular' + '.png'))
                 results.to_csv(join(outdir, 'results.csv'), index=False)
 
 
