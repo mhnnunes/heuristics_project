@@ -26,12 +26,14 @@ def test_datasets(datadir, outdir, verbose=False):
     for distribution in listdir(dataset_dir):
         # Test datasets generated using both distributions:
         # uniform and gaussian
-        for filename in listdir(join(dataset_dir, distribution)):
+        for filename in sorted(listdir(join(dataset_dir, distribution))):
             # Read each test file
-            raw_data = read_input(join(dataset_dir, distribution, filename))
-            X, labels = parse_synthetic_dataset(raw_data)
             if verbose:
                 print("=========== Starting test on file: ", filename, '============')
+            print('before reading data')
+            raw_data = read_input(join(dataset_dir, distribution, filename))
+            X, labels = parse_synthetic_dataset(raw_data)
+            print('after reading data')
             # Define values for k and put it in a loop
             results = pd.DataFrame(columns=['dataset', 'method', 'k',
                                             'time', 'ssq'])
@@ -40,8 +42,11 @@ def test_datasets(datadir, outdir, verbose=False):
                 # BEGIN TEST: LLOYD HEURISTIC
                 before = default_timer()
                 try:
+                    print('before calling lloyd')
                     clusters_lloyd, ssq_lloyd = kmns.lloyd_heuristic()
+                    print('after calling lloyd')
                 except Exception as e:
+                    print('EXCEPTION ON FILE', filename, e)
                     if verbose:
                         print(e)
                     results = \
@@ -68,7 +73,7 @@ def test_datasets(datadir, outdir, verbose=False):
                                                                   'ssq'])],
                                   axis=0)
                     plot_clustering_results(X, clusters_lloyd, 'lloyd', labels,
-                                            join(plots_dir, filename,
+                                            join(plots_dir, filename.split('.')[0] +
                                                  '_lloyd' + '.png'))
                 # BEGIN TEST: MACQUEEN HEURISTIC
                 before = default_timer()
@@ -102,7 +107,7 @@ def test_datasets(datadir, outdir, verbose=False):
                                   axis=0)
                     plot_clustering_results(X, clusters_mcq, 'macqueen',
                                             labels,
-                                            join(plots_dir, filename,
+                                            join(plots_dir, filename.split('.')[0] +
                                                  '_macqueen' + '.png'))
                 # BEGIN TEST: K-FURTHEST HEURISTIC
                 before = default_timer()
@@ -136,7 +141,7 @@ def test_datasets(datadir, outdir, verbose=False):
                                   axis=0)
                     plot_clustering_results(X, clusters_kfu, 'k-furthest',
                                             labels,
-                                            join(plots_dir,
+                                            join(plots_dir, filename.split('.')[0] +
                                                  'k-furthest' + '.png'))
                 # BEGIN TEST: K-POPULAR HEURISTIC
                 before = default_timer()
@@ -170,9 +175,11 @@ def test_datasets(datadir, outdir, verbose=False):
                                   axis=0)
                     plot_clustering_results(X, clusters_kpp, 'k-popular',
                                             labels,
-                                            join(plots_dir,
-                                                 'k-popular' + '.png'))
-                results.to_csv(join(outdir, 'results.csv'), index=False)
+                                            join(plots_dir, filename.split('.')[0] +
+                                                 '_k-popular' + '.png'))
+            results.to_csv(join(outdir, filename.split('.')[0] + '_' +
+                                'results.csv'),
+                           index=False)
 
 
 if __name__ == "__main__":

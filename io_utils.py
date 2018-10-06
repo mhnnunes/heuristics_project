@@ -72,6 +72,7 @@ def parse_synthetic_dataset(data):
 
 def plot_clustering_results(Y, results, heuristic, actual_clusters=None, fn=''):
     # PLOT CLUSTERING RESULT
+    print('plotting results, ', fn)
     if actual_clusters is not None:
         f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
         ax1.scatter(Y[:, 0], Y[:, 1], c=results,
@@ -81,13 +82,14 @@ def plot_clustering_results(Y, results, heuristic, actual_clusters=None, fn=''):
                     cmap="jet", edgecolor="None", alpha=0.35)
         ax2.set_title('Actual clusters')
         # plt.show()
-        plt.savefig(str(heuristic) + '.png')
+        plt.savefig(fn)
     else:
         f, ax1 = plt.subplots(1, 1, sharey=True)
         ax1.scatter(Y[:, 0], Y[:, 1], c=results,
                     cmap="jet", edgecolor="None", alpha=0.35)
         ax1.set_title(heuristic)
-        plt.savefig(str(heuristic) + '.png')
+        plt.savefig(fn)
+    plt.close('all')
 
 
 if __name__ == "__main__":
