@@ -57,6 +57,9 @@ class KMeans(object):
         if not hasattr(self, 'distances'):
             self.calculate_distance_between_pairs()
 
+        if self.verbose:
+            print('Beginning of lloyd_heuristic')
+
         npoints = self.data.shape[0]
         # Initially all points are in cluster 0
         self.clusters = np.zeros(npoints, dtype=int)
@@ -98,6 +101,8 @@ class KMeans(object):
             # Count how many points changed clusters
             changed_cluster_cur = \
                 np.count_nonzero(self.clusters - cur_clusters)
+            if self.verbose:
+                print(changed_cluster_cur, ' points changed cluster')
             # No change since last iteration
             if changed_cluster_cur == changed_cluster_prev:
                 nochange += 1
@@ -105,6 +110,8 @@ class KMeans(object):
             self.clusters = cur_clusters
             # Save current number of points that changed cluster
             changed_cluster_prev = changed_cluster_cur
+            if self.verbose:
+                print('End of iteration: ', iteration)
             iteration += 1
             # print(changed_cluster_cur, ' points changed cluster')
         # Repeat until convergence (points stop changing clusters)
@@ -116,6 +123,9 @@ class KMeans(object):
         # If the 'distances' variable does not exist, make it
         if not hasattr(self, 'distances'):
             self.calculate_distance_between_pairs()
+
+        if self.verbose:
+            print('Beginning of macqueen_heuristic')
 
         npoints = self.data.shape[0]
         # Initially all points are in cluster 0
@@ -164,11 +174,15 @@ class KMeans(object):
                                             closest_point_index)
                 centers_indexes = np.delete(centers_indexes, closest_center)
 
+            if self.verbose:
+                print(changed_cluster_cur, ' points changed cluster')
             # Check if there were any changes of clusters
             if changed_cluster_prev == changed_cluster_cur:
                 nochange += 1
             changed_cluster_prev = changed_cluster_cur
             # print(changed_cluster_cur, ' points changed cluster')
+            if self.verbose:
+                print('End of iteration: ', iteration)
             iteration += 1
         # Calculate objective function value
         self.clusters = self.clusters.astype(int)
@@ -179,6 +193,9 @@ class KMeans(object):
         # If the 'distances' variable does not exist, make it
         if not hasattr(self, 'distances'):
             self.calculate_distance_between_pairs()
+
+        if self.verbose:
+            print('Beginning of k_furthest_initial_heuristic')
 
         npoints = self.data.shape[0]
         # Initially all points are in cluster 0
@@ -230,6 +247,8 @@ class KMeans(object):
             # Count how many points changed clusters
             changed_cluster_cur = \
                 np.count_nonzero(self.clusters - cur_clusters)
+            if self.verbose:
+                print(changed_cluster_cur, ' points changed cluster')
             # No change since last iteration
             if changed_cluster_cur == changed_cluster_prev:
                 nochange += 1
@@ -237,6 +256,8 @@ class KMeans(object):
             self.clusters = cur_clusters
             # Save current number of points that changed cluster
             changed_cluster_prev = changed_cluster_cur
+            if self.verbose:
+                print('End of iteration: ', iteration)
             iteration += 1
             # print(changed_cluster_cur, ' points changed cluster')
         # Repeat until convergence (points stop changing clusters)
@@ -249,6 +270,9 @@ class KMeans(object):
         # If the 'distances' variable does not exist, make it
         if not hasattr(self, 'distances'):
             self.calculate_distance_between_pairs()
+
+        if self.verbose:
+            print('Beginning of k_popular_initial_heuristic')
 
         npoints = self.data.shape[0]
         # Initially all points are in cluster 0
@@ -304,6 +328,8 @@ class KMeans(object):
             # Count how many points changed clusters
             changed_cluster_cur = \
                 np.count_nonzero(self.clusters - cur_clusters)
+            if self.verbose:
+                print(changed_cluster_cur, ' points changed cluster')
             # No change since last iteration
             if changed_cluster_cur == changed_cluster_prev:
                 nochange += 1
@@ -311,6 +337,8 @@ class KMeans(object):
             self.clusters = cur_clusters
             # Save current number of points that changed cluster
             changed_cluster_prev = changed_cluster_cur
+            if self.verbose:
+                print('End of iteration: ', iteration)
             iteration += 1
             # print(changed_cluster_cur, ' points changed cluster')
         # Repeat until convergence (points stop changing clusters)
@@ -331,7 +359,7 @@ if __name__ == "__main__":
     X = X.values
     print(X)
     Y = tsne.fit_transform(scale(X))
-    heu = KMeans(X, 1, 2)
+    heu = KMeans(X, 1, 2, True)
     print("LLOYD HEURISTIC")
     c, ssq = heu.lloyd_heuristic()
     # print(le.fit_transform(c))

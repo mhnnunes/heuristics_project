@@ -5,7 +5,7 @@
 import pandas as pd
 from sys import argv
 import matplotlib.pyplot as plt
-from sklearn.dataset import make_blobs
+from sklearn.datasets import make_blobs
 
 
 def read_input(filename):
@@ -70,7 +70,7 @@ def parse_synthetic_dataset(data):
     return data[['X', 'Y']].values, data['class']
 
 
-def plot_clustering_results(Y, results, heuristic, actual_clusters=None):
+def plot_clustering_results(Y, results, heuristic, actual_clusters=None, dir=''):
     # PLOT CLUSTERING RESULT
     if actual_clusters is not None:
         f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
