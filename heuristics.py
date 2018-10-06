@@ -5,37 +5,12 @@
 import numpy as np
 from sys import argv
 from io_utils import read_input
+from io_utils import plot_clustering_results
 from io_utils import parse_breast_cancer
-import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE  # Dimensionality reduction for visualization
 from sklearn.preprocessing import scale
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics.pairwise import euclidean_distances
-
-
-def plot_clustering_results(Y, results, heuristic, actual_clusters=None):
-    # PLOT CLUSTERING RESULT
-    # f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
-    if actual_clusters is not None:
-        f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
-        ax1.scatter(Y[:, 0], Y[:, 1], c=results,
-                    cmap="jet", edgecolor="None", alpha=0.35)
-        ax1.set_title(heuristic)
-        ax2.scatter(Y[:, 0], Y[:, 1], c=actual_clusters,
-                    cmap="jet", edgecolor="None", alpha=0.35)
-        ax2.set_title('Actual clusters')
-        # plt.show()
-        plt.savefig(str(heuristic) + '.png')
-    else:
-        f, ax1 = plt.subplots(1, 1, sharey=True)
-        ax1.scatter(Y[:, 0], Y[:, 1], c=results,
-                    cmap="jet", edgecolor="None", alpha=0.35)
-        ax1.set_title(heuristic)
-        # ax2.scatter(Y[:, 0], Y[:, 1], c=actual_clusters,
-        #             cmap="jet", edgecolor="None", alpha=0.35)
-        # ax2.set_title('Actual clusters')
-        # plt.show()
-        plt.savefig(str(heuristic) + '.png')
 
 
 class KMeans(object):
@@ -44,11 +19,12 @@ class KMeans(object):
     This problem is also commonly known as K-Means.
     """
 
-    def __init__(self, data, seed, k):
+    def __init__(self, data, seed, k, verbose=False):
         self.k = k
         # Data will be passed as a numpy 2D array
         self.data = data
         self.seed = seed
+        self.verbose = verbose
         # Set random generator seed
         np.random.seed(self.seed)
 
@@ -111,7 +87,7 @@ class KMeans(object):
                 # print(centroid)
                 # Get closest point to centroid
                 closest_point_index = \
-                    np.argmin(euclidean_distances(X=heu.data,
+                    np.argmin(euclidean_distances(X=self.data,
                                                   Y=centroid.reshape(1, -1)))
                 new_centers_indexes.append(closest_point_index)
             # end for loop
@@ -177,7 +153,7 @@ class KMeans(object):
                              centers_indexes[closest_center])[0]
                 centroid = np.mean(self.data[points_in_cluster, :], axis=0)
                 closest_point_index = \
-                    np.argmin(euclidean_distances(X=heu.data,
+                    np.argmin(euclidean_distances(X=self.data,
                                                   Y=centroid.reshape(1, -1)))
                 # Update points that were already in the cluster that changed
                 for p in points_in_cluster:
@@ -243,7 +219,7 @@ class KMeans(object):
                 # print(centroid)
                 # Get closest point to centroid
                 closest_point_index = \
-                    np.argmin(euclidean_distances(X=heu.data,
+                    np.argmin(euclidean_distances(X=self.data,
                                                   Y=centroid.reshape(1, -1)))
                 new_centers_indexes.append(closest_point_index)
             # end for loop
@@ -317,7 +293,7 @@ class KMeans(object):
                 # print(centroid)
                 # Get closest point to centroid
                 closest_point_index = \
-                    np.argmin(euclidean_distances(X=heu.data,
+                    np.argmin(euclidean_distances(X=self.data,
                                                   Y=centroid.reshape(1, -1)))
                 new_centers_indexes.append(closest_point_index)
             # end for loop
@@ -388,6 +364,7 @@ if __name__ == "__main__":
 
 # import pandas as pd
 # from io_utils import read_input 
+# import matplotlib.pyplot as plt
 # from sklearn.manifold import TSNE
 # from sklearn.cluster import KMeans
 # from sklearn.preprocessing import scale
