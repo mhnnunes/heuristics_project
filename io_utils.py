@@ -70,7 +70,11 @@ def generate_bivariate_gaussian(centers):
 
 
 def parse_synthetic_dataset(data):
-    return data[['X', 'Y']].values, data['class']
+    try:
+        labels = data[['class']]
+    except Exception:
+        labels = None
+    return data[['X', 'Y']].values, labels
 
 
 def plot_clustering_results(Y, results, heuristic, actual_clusters=None, fn=''):
