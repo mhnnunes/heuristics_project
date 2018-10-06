@@ -63,6 +63,9 @@ def generate_bivariate_gaussian(centers):
                    (10, 0), (10, 5), (10, 10)]
         X, y = make_blobs(n_samples=n_samples, n_features=2, cluster_std=1.0,
                           centers=centers, shuffle=False, random_state=42)
+        data = pd.concat([pd.DataFrame(X, columns=['X', 'Y']),
+                          pd.DataFrame(y, columns=['class'])],
+                         axis=1)
         data.to_csv('grid6_' + str(n_samples) + '.csv', index=False)
 
 

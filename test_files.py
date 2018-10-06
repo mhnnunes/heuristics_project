@@ -142,7 +142,7 @@ def test_datasets(datadir, outdir, verbose=False):
                     plot_clustering_results(X, clusters_kfu, 'k-furthest',
                                             labels,
                                             join(plots_dir, filename.split('.')[0] +
-                                                 'k-furthest' + '.png'))
+                                                 '_k-furthest' + '.png'))
                 # BEGIN TEST: K-POPULAR HEURISTIC
                 before = default_timer()
                 try:
