@@ -71,7 +71,7 @@ def generate_bivariate_gaussian(centers):
 
 def parse_synthetic_dataset(data):
     try:
-        labels = data[['class']]
+        labels = data['class']
     except Exception:
         labels = None
     return data[['X', 'Y']].values, labels
