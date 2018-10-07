@@ -209,9 +209,10 @@ class KMeans(object):
         # order, then we take the last k-1 elements of this array with
         # [(self.k-1):] and return it backwards with [::-1]
         # print(centers_indexes[0])
-        centers_indexes[1:] = \
-            np.argsort(self.distances[int(centers_indexes[0]), :])[-(self.k -
-                                                                     1):][::-1]
+        if self.k > 1:
+            centers_indexes[1:] = \
+                np.argsort(self.distances[int(centers_indexes[0]), :])[-(self.k -
+                                                                         1):][::-1]
         # From then we apply lloyds algorithm
         # Use centers to index distance matrix, then sort
         self.clusters = self.__reassign_points_to_clusters(centers_indexes,
