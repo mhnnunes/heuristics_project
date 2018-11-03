@@ -192,6 +192,37 @@ class KMeans(object):
         ssq = self.__calculate_sum_of_squares()
         return self.clusters, ssq
 
+    def k_means_plus_plus(self, threshold=10):
+        # Recalculating distance matrix every time so every
+        # heuristic is evaluated in the same manner
+        self.calculate_distance_between_pairs()
+
+        if self.verbose:
+            print('Beginning of k_furthest_initial_heuristic')
+
+        npoints = self.data.shape[0]
+        points_indexes = np.array(list(range(npoints)))
+        # Initially all points are in cluster 0
+        self.clusters = np.zeros(npoints, dtype=int)
+
+        # Choose 1 point randomly
+        centers_indexes = np.zeros(self.k, dtype=int)
+        centers_indexes[0] = np.random.randint(npoints, size=1)
+
+        if self.k > 1:
+            for i in range(1, self.k):
+                # Calculate D^2 for every data point
+                d2 = self.distances[:, centers_indexes[:i]].min(axis=1)**2
+                # Normalize D^2
+                d2 = d2 / np.sum(d2)
+                possible_points = np.setdiff1d(points_indexes,
+                                               np.array(centers_indexes[:i]))
+                centers_indexes[i] = np.random.choice(possible_points,
+                                                      size=1,
+                                                      p=(d2[possible_points]))
+        print("chosen centers: ", centers_indexes)
+        return self.__lloyd_local_search(centers_indexes, threshold, npoints)
+
     def k_furthest_initial_heuristic(self, threshold=10):
         # Recalculating distance matrix every time so every
         # heuristic is evaluated in the same manner
@@ -261,32 +292,33 @@ if __name__ == "__main__":
     print(X)
     Y = tsne.fit_transform(scale(X))
     heu = KMeans(X, 1, 2, True)
-    print("LLOYD HEURISTIC")
+    # print("LLOYD HEURISTIC")
     c, ssq = heu.lloyd_heuristic()
     # print(le.fit_transform(c))
     plot_clustering_results(Y, le.fit_transform(c),
-                            'LLOYD', data['diagnosis'])
-    # plot_clustering_results(Y, le.fit_transform(c), 'LLOYD')
+                            'LLOYD', label, 'lloyd')
     print('Sum of squares:: ', ssq)
-    print('MACQUEEN HEURISTIC')
-    d, ssq = heu.macqueen_heuristic()
-    # print(d)
-    plot_clustering_results(Y, le.fit_transform(d),
-                            'MACQUEEN', label)
-    # plot_clustering_results(Y, le.fit_transform(d), 'MACQUEEN')
-    print('Sum of squares:: ', ssq)
-    print('K FURTHEST HEURISTIC')
-    e, ssq = heu.k_furthest_initial_heuristic()
-    # print(e)
-    plot_clustering_results(Y, le.fit_transform(e), 'K-FURTHEST',
-                            label)
-    # plot_clustering_results(Y, le.fit_transform(d), 'K-FURTHEST')
-    print('Sum of squares:: ', ssq)
-    print('K POPULAR HEURISTIC')
-    f, ssq = heu.k_popular_initial_heuristic()
-    plot_clustering_results(Y, le.fit_transform(f), 'K-POPULAR',
-                            label)
-    # plot_clustering_results(Y, le.fit_transform(d), 'K-POPULAR')
+    # print('MACQUEEN HEURISTIC')
+    # d, ssq = heu.macqueen_heuristic()
+    # # print(d)
+    # plot_clustering_results(Y, le.fit_transform(d),
+    #                         'MACQUEEN', label)
+    # print('Sum of squares:: ', ssq)
+    # print('K FURTHEST HEURISTIC')
+    # e, ssq = heu.k_furthest_initial_heuristic()
+    # # print(e)
+    # plot_clustering_results(Y, le.fit_transform(e), 'K-FURTHEST',
+    #                         label)
+    # print('Sum of squares:: ', ssq)
+    # print('K POPULAR HEURISTIC')
+    # f, ssq = heu.k_popular_initial_heuristic()
+    # plot_clustering_results(Y, le.fit_transform(f), 'K-POPULAR',
+    #                         label)
+    # print('Sum of squares:: ', ssq)
+    print('K-MEANS++ HEURISTIC')
+    f, ssq = heu.k_means_plus_plus()
+    plot_clustering_results(Y, le.fit_transform(f),
+                            'K-MEANS++', label, 'kmeans++')
     print('Sum of squares:: ', ssq)
     # print('Sum of squares:: ', ssq)
 
