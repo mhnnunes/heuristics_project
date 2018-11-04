@@ -82,7 +82,7 @@ def test_datasets(datadir, outdir, verbose=False):
                 for random_seed in range(30):
                     kmns = KMeans(X, random_seed, k, verbose)
                     heuristics_list = \
-                        [(kmns.lloyd_heuristic, 'lloyd'),
+                        [(kmns.lloyd_initial_heuristic, 'lloyd'),
                          # (kmns.macqueen_heuristic, 'macqueen'),
                          (kmns.k_means_plus_plus, 'kmeans++'),
                          (kmns.k_furthest_initial_heuristic, 'k-furthest'),
