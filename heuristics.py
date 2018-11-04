@@ -5,10 +5,10 @@
 import numpy as np
 from sys import argv
 from io_utils import read_input
-from io_utils import plot_clustering_results
-from io_utils import parse_breast_cancer
 from sklearn.manifold import TSNE  # Dimensionality reduction for visualization
 from sklearn.preprocessing import scale
+from io_utils import parse_breast_cancer
+from io_utils import plot_clustering_results
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics.pairwise import euclidean_distances
 
@@ -25,6 +25,7 @@ class KMeans(object):
         self.data = data
         self.seed = seed
         self.verbose = verbose
+        self.npoints = self.data.shape[0]
         # Set random generator seed
         np.random.seed(self.seed)
 
@@ -33,17 +34,16 @@ class KMeans(object):
 
     def __calculate_sum_of_squares(self):
         # Calculate distance between points and clusters
-        npoints = self.data.shape[0]
-        points = np.arange(npoints)
+        points = np.arange(self.npoints)
         # Return sum of squares of distances between points and their
         # respective center (cluster)
         return np.sum(np.square(self.distances[points, self.clusters[points]]))
 
-    def __reassign_points_to_clusters(self, centers_indexes, npoints):
+    def __reassign_points_to_clusters(self, centers_indexes):
         # Initially all points are in cluster 0
-        clusters = np.zeros(npoints, dtype=int)
-        for point in range(npoints):
-            # Get distances from point to the centers, in the order:
+        clusters = np.zeros(self.npoints, dtype=int)
+        for point in range(self.npoints):
+            # Get distances from point to the centers, in order:
             # [dist_to_center_0, dist_to_center_1, ...]
             distance_to_centers = self.distances[point, centers_indexes]
             # Get index of smallest distance
@@ -52,10 +52,8 @@ class KMeans(object):
             clusters[point] = int(centers_indexes[closest_center])
         return clusters
 
-    def __lloyd_local_search(self, centers_indexes, threshold, npoints):
-        # Use centers to index distance matrix, then sort
-        self.clusters = self.__reassign_points_to_clusters(centers_indexes,
-                                                           npoints)
+    def lloyd_local_search(self, centers_indexes, threshold):
+        self.clusters = self.__reassign_points_to_clusters(centers_indexes)
 
         # Number of points that changed cluster from one iteration to another
         changed_cluster_prev = 1
@@ -81,8 +79,7 @@ class KMeans(object):
             # end for loop
             centers_indexes = np.array(new_centers_indexes)
             # Reassign points to new clusters
-            cur_clusters = self.__reassign_points_to_clusters(centers_indexes,
-                                                              npoints)
+            cur_clusters = self.__reassign_points_to_clusters(centers_indexes)
             # Count how many points changed clusters
             changed_cluster_cur = \
                 np.count_nonzero(self.clusters - cur_clusters)
@@ -104,39 +101,24 @@ class KMeans(object):
         ssq = self.__calculate_sum_of_squares()
         return self.clusters, ssq
 
-    def lloyd_heuristic(self, threshold=10):
+    def __init_clusters(self, heuristic_name=""):
         # Recalculating distance matrix every time so every
         # heuristic is evaluated in the same manner
         self.calculate_distance_between_pairs()
 
         if self.verbose:
-            print('Beginning of lloyd_heuristic')
+            print('Beginning of ', heuristic_name)
 
-        npoints = self.data.shape[0]
         # Initially all points are in cluster 0
-        self.clusters = np.zeros(npoints, dtype=int)
-        # Define k initial clusters randomly
-        #    - Choose k points randomly
-        # Choose k indexes from data
-        centers_indexes = np.random.randint(npoints, size=self.k)
-
-        return self.__lloyd_local_search(centers_indexes, threshold, npoints)
+        self.clusters = np.zeros(self.npoints, dtype=int)
 
     def macqueen_heuristic(self, threshold=10):
-        # Recalculating distance matrix every time so every
-        # heuristic is evaluated in the same manner
-        self.calculate_distance_between_pairs()
+        self.__init_clusters('macqueen_heuristic')
 
-        if self.verbose:
-            print('Beginning of macqueen_heuristic')
-
-        npoints = self.data.shape[0]
-        # Initially all points are in cluster 0
-        self.clusters = np.zeros(npoints)
         # Define k initial clusters randomly
         #    - Choose k points randomly
         # Choose k indexes from data
-        centers_indexes = np.random.randint(npoints, size=self.k)
+        centers_indexes = np.random.randint(self.npoints, size=self.k)
 
         for center in centers_indexes:
             self.clusters[center] = center
@@ -148,7 +130,7 @@ class KMeans(object):
             # print("Iteration:: ", iteration)
             changed_cluster_cur = 0
 
-            for point in range(npoints):
+            for point in range(self.npoints):
                 # Get distances from point to the centers, in the order:
                 # [dist_to_center_0, dist_to_center_1, ...]
                 distance_to_centers = self.distances[point, centers_indexes]
@@ -192,22 +174,22 @@ class KMeans(object):
         ssq = self.__calculate_sum_of_squares()
         return self.clusters, ssq
 
-    def k_means_plus_plus(self, threshold=10):
-        # Recalculating distance matrix every time so every
-        # heuristic is evaluated in the same manner
-        self.calculate_distance_between_pairs()
+    def lloyd_initial_heuristic(self):
+        self.__init_clusters('lloyd_heuristic')
+        # Define k initial clusters randomly
+        #    - Choose k points randomly
+        # Choose k indexes from data
+        centers_indexes = np.random.randint(self.npoints, size=self.k)
+        # return centers_indexes
+        self.clusters = self.__reassign_points_to_clusters(centers_indexes)
+        return self.clusters, self.__calculate_sum_of_squares()
 
-        if self.verbose:
-            print('Beginning of k_furthest_initial_heuristic')
-
-        npoints = self.data.shape[0]
-        points_indexes = np.array(list(range(npoints)))
-        # Initially all points are in cluster 0
-        self.clusters = np.zeros(npoints, dtype=int)
-
+    def k_means_plus_plus(self):
+        self.__init_clusters('k_means++ heuristic')
+        points_indexes = np.array(list(range(self.npoints)))
         # Choose 1 point randomly
         centers_indexes = np.zeros(self.k, dtype=int)
-        centers_indexes[0] = np.random.randint(npoints, size=1)
+        centers_indexes[0] = np.random.randint(self.npoints, size=1)
 
         if self.k > 1:
             for i in range(1, self.k):
@@ -220,23 +202,18 @@ class KMeans(object):
                 centers_indexes[i] = np.random.choice(possible_points,
                                                       size=1,
                                                       p=(d2[possible_points]))
-        print("chosen centers: ", centers_indexes)
-        return self.__lloyd_local_search(centers_indexes, threshold, npoints)
-
-    def k_furthest_initial_heuristic(self, threshold=10):
-        # Recalculating distance matrix every time so every
-        # heuristic is evaluated in the same manner
-        self.calculate_distance_between_pairs()
-
         if self.verbose:
-            print('Beginning of k_furthest_initial_heuristic')
+            print("[k-means++] chosen centers: ", centers_indexes)
 
-        npoints = self.data.shape[0]
-        # Initially all points are in cluster 0
-        self.clusters = np.zeros(npoints, dtype=int)
+        # return centers_indexes
+        self.clusters = self.__reassign_points_to_clusters(centers_indexes)
+        return self.clusters, self.__calculate_sum_of_squares()
+
+    def k_furthest_initial_heuristic(self):
+        self.__init_clusters('k_furthest_initial_heuristic')
         # Choose 1 point randomly
         centers_indexes = np.zeros(self.k, dtype=int)
-        centers_indexes[0] = np.random.randint(npoints, size=1)
+        centers_indexes[0] = np.random.randint(self.npoints, size=1)
         # Assign to the k-1 remainder centers the indexes of the k-1 points
         # that are further away from the current center
         # argsort return the indexes which would sort the array in ascending
@@ -246,29 +223,21 @@ class KMeans(object):
             centers_indexes[1:] = \
                 np.argsort(self.distances[int(centers_indexes[0]), :])[-(self.k -
                                                                          1):][::-1]
-        # From then we apply lloyds algorithm
-        return self.__lloyd_local_search(centers_indexes, threshold, npoints)
+        # return centers_indexes
+        self.clusters = self.__reassign_points_to_clusters(centers_indexes)
+        return self.clusters, self.__calculate_sum_of_squares()
 
-    def k_popular_initial_heuristic(self, threshold=10):
-        # If the 'distances' variable does not exist, make it
-        # if not hasattr(self, 'distances'):
-        self.calculate_distance_between_pairs()
-
-        if self.verbose:
-            print('Beginning of k_popular_initial_heuristic')
-
-        npoints = self.data.shape[0]
-        # Initially all points are in cluster 0
-        self.clusters = np.zeros(npoints)
+    def k_popular_initial_heuristic(self):
+        self.__init_clusters('k_popular_initial_heuristic')
 
         # Calculate mean of distances
         meandist = np.mean(self.distances)
 
         # Find the number of neighbors with distance > mean that each point has
         morethanmean = np.where(self.distances > meandist)
-        numneigh = np.zeros(npoints, dtype=int)
+        numneigh = np.zeros(self.npoints, dtype=int)
 
-        for point in range(npoints):
+        for point in range(self.npoints):
             numneigh[point] = np.count_nonzero(morethanmean[0] == point)
 
         # Choose the k points with more neighbors as the center indexes
@@ -276,8 +245,84 @@ class KMeans(object):
         centers_indexes[0:] = \
             np.argsort(numneigh)[-(self.k):][::-1]
 
-        # From then we apply lloyds algorithm
-        return self.__lloyd_local_search(centers_indexes, threshold, npoints)
+        # return centers_indexes
+        self.clusters = self.__reassign_points_to_clusters(centers_indexes)
+        return self.clusters, self.__calculate_sum_of_squares()
+
+    def __tabu_neighborhood_search(self, initial_solution, tabu_list):
+        print("initial_solution", initial_solution)
+        print("initial_solution shape", initial_solution.shape[0])
+        new_solution = np.zeros(initial_solution.shape[0], dtype=int)
+        for index, center in enumerate(list(initial_solution)):
+            # Evaluate deltaJ for each muk (center)
+            points_in_cluster = np.where(self.clusters == center)[0]
+            # print('points_in_cluster', points_in_cluster)
+            # print('points_in_cluster shape', points_in_cluster.shape)
+            delta_muk = self.distances[:, center]
+            # print('delta_muk', delta_muk)
+            deltaJ = np.zeros(points_in_cluster.shape[0])
+            for index2, point in enumerate(list(points_in_cluster)):
+                deltaJ[index2] = \
+                    np.sum(-2 *
+                           self.distances[points_in_cluster, center] *
+                           delta_muk[point] + delta_muk[point] ** 2)
+            assigned = False
+            for point in points_in_cluster[np.argsort(deltaJ)]:
+                if point not in tabu_list:
+                    assigned = True
+                    new_solution[index] = point
+                    break
+            if not assigned:
+                # delete last entry on row k of tabu list:
+                # same thing as using it again
+                if self.verbose:
+                    print('all points in cluster', index, 'are on tabu_list')
+                new_solution[index] = tabu_list[self.k - 1, -1]
+        return new_solution
+
+    def tabu_search_metaheuristic(self, threshold=0.1, max_iter=10):
+        self.__init_clusters('tabu_search_metaheuristic')
+
+        best_solution = self.lloyd_initial_heuristic()
+        self.clusters = self.__reassign_points_to_clusters(best_solution)
+
+        # Mark the number of iterations taken to converge
+        nochange = 0
+        iteration = 1
+        tabu_list = np.empty((self.k, 0))
+
+        # Continue until the change in the objective function value is not
+        # significant enough, for max_iter iterations
+        while nochange < max_iter:  # TODO: Add here total max iterations num
+            prev_ssq = self.__calculate_sum_of_squares()
+
+            if self.verbose:
+                print("initial sum of squares: ", prev_ssq)
+            # Build new solution from neighborhood function
+            new_solution = self.__tabu_neighborhood_search(best_solution,
+                                                           tabu_list)
+            # Add new solution to tabu_list
+            tabu_list = np.hstack([tabu_list, new_solution.reshape(self.k, 1)])
+            if self.verbose:
+                print('new solution found on __tabu_neighborhood_search',
+                      new_solution)
+            # Reassign points to new clusters
+            new_clusters = self.__reassign_points_to_clusters(new_solution)
+            # Calculate new objective function value
+            ssq = self.__calculate_sum_of_squares()
+            if self.verbose:
+                print('new ssq: ', ssq)
+                print('improvement: ', prev_ssq - ssq)
+            # Check if change in objective function is significant
+            if (prev_ssq - ssq) < threshold:
+                nochange += 1
+            self.clusters = new_clusters
+            if self.verbose:
+                print('End of iteration: ', iteration)
+            iteration += 1
+
+        print('tabu_list: ', tabu_list)
+        return self.clusters, ssq
 
 
 if __name__ == "__main__":
@@ -289,15 +334,16 @@ if __name__ == "__main__":
     # pre-processing breast cancer data
     X, label = parse_breast_cancer(data)
     X = X.values
-    print(X)
+    # print(X)
+    threshold = 10
     Y = tsne.fit_transform(scale(X))
     heu = KMeans(X, 1, 2, True)
     # print("LLOYD HEURISTIC")
-    c, ssq = heu.lloyd_heuristic()
-    # print(le.fit_transform(c))
-    plot_clustering_results(Y, le.fit_transform(c),
-                            'LLOYD', label, 'lloyd')
-    print('Sum of squares:: ', ssq)
+    # c, ssq = heu.lloyd_local_search(heu.lloyd_initial_heuristic(), threshold)
+    # # print(le.fit_transform(c))
+    # plot_clustering_results(Y, le.fit_transform(c),
+    #                         'LLOYD', label, 'lloyd')
+    # print('Sum of squares:: ', ssq)
     # print('MACQUEEN HEURISTIC')
     # d, ssq = heu.macqueen_heuristic()
     # # print(d)
@@ -315,8 +361,15 @@ if __name__ == "__main__":
     # plot_clustering_results(Y, le.fit_transform(f), 'K-POPULAR',
     #                         label)
     # print('Sum of squares:: ', ssq)
-    print('K-MEANS++ HEURISTIC')
-    f, ssq = heu.k_means_plus_plus()
+    # print('K-MEANS++ HEURISTIC')
+    # f, ssq = heu.lloyd_local_search(heu.k_means_plus_plus(), threshold)
+    # plot_clustering_results(Y, le.fit_transform(f),
+    #                         'K-MEANS++', label, 'kmeans++')
+    # print('Sum of squares:: ', ssq)
+
+    # METAHEURISTICS
+    print('Tabu Search METAHEURISTIC')
+    f, ssq = heu.tabu_search_metaheuristic(threshold)
     plot_clustering_results(Y, le.fit_transform(f),
                             'K-MEANS++', label, 'kmeans++')
     print('Sum of squares:: ', ssq)
