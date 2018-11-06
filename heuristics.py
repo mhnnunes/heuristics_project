@@ -32,12 +32,12 @@ class KMeans(object):
     def calculate_distance_between_pairs(self):
         self.distances = euclidean_distances(self.data)
 
-    def __calculate_sum_of_squares(self):
+    def __calculate_sum_of_squares(self, clusters):
         # Calculate distance between points and clusters
         points = np.arange(self.npoints)
         # Return sum of squares of distances between points and their
         # respective center (cluster)
-        return np.sum(np.square(self.distances[points, self.clusters[points]]))
+        return np.sum(np.square(self.distances[points, clusters[points]]))
 
     def __reassign_points_to_clusters(self, centers_indexes):
         # Initially all points are in cluster 0
@@ -98,7 +98,7 @@ class KMeans(object):
         # Repeat until convergence (points stop changing clusters)
         # Calculate objective function value
         self.clusters = self.clusters.astype(int)
-        ssq = self.__calculate_sum_of_squares()
+        ssq = self.__calculate_sum_of_squares(self.clusters)
         return self.clusters, ssq
 
     def __init_clusters(self, heuristic_name=""):
@@ -171,7 +171,7 @@ class KMeans(object):
             iteration += 1
         # Calculate objective function value
         self.clusters = self.clusters.astype(int)
-        ssq = self.__calculate_sum_of_squares()
+        ssq = self.__calculate_sum_of_squares(self.clusters)
         return self.clusters, ssq
 
     def lloyd_initial_heuristic(self):
@@ -182,7 +182,7 @@ class KMeans(object):
         centers_indexes = np.random.randint(self.npoints, size=self.k)
         # return centers_indexes
         self.clusters = self.__reassign_points_to_clusters(centers_indexes)
-        return self.clusters, self.__calculate_sum_of_squares()
+        return self.clusters, self.__calculate_sum_of_squares(self.clusters)
 
     def k_means_plus_plus(self):
         self.__init_clusters('k_means++ heuristic')
@@ -207,7 +207,7 @@ class KMeans(object):
 
         # return centers_indexes
         self.clusters = self.__reassign_points_to_clusters(centers_indexes)
-        return self.clusters, self.__calculate_sum_of_squares()
+        return self.clusters, self.__calculate_sum_of_squares(self.clusters)
 
     def k_furthest_initial_heuristic(self):
         self.__init_clusters('k_furthest_initial_heuristic')
@@ -225,7 +225,7 @@ class KMeans(object):
                                                                          1):][::-1]
         # return centers_indexes
         self.clusters = self.__reassign_points_to_clusters(centers_indexes)
-        return self.clusters, self.__calculate_sum_of_squares()
+        return self.clusters, self.__calculate_sum_of_squares(self.clusters)
 
     def k_popular_initial_heuristic(self):
         self.__init_clusters('k_popular_initial_heuristic')
@@ -247,7 +247,7 @@ class KMeans(object):
 
         # return centers_indexes
         self.clusters = self.__reassign_points_to_clusters(centers_indexes)
-        return self.clusters, self.__calculate_sum_of_squares()
+        return self.clusters, self.__calculate_sum_of_squares(self.clusters)
 
     def __tabu_neighborhood_search(self, initial_solution, tabu_list):
         print("initial_solution", initial_solution)
@@ -276,28 +276,31 @@ class KMeans(object):
                 # delete last entry on row k of tabu list:
                 # same thing as using it again
                 if self.verbose:
-                    print('all points in cluster', index, 'are on tabu_list')
+                    print('all points in cluster', index, center,
+                          'are on tabu_list')
+                    print('points in cluster: ', points_in_cluster)
                 new_solution[index] = tabu_list[self.k - 1, -1]
         return new_solution
 
     def tabu_search_metaheuristic(self, threshold=0.1, max_iter=10):
         self.__init_clusters('tabu_search_metaheuristic')
 
-        best_solution = self.lloyd_initial_heuristic()
+        lloyd_clusters, lloyd_ssq = self.lloyd_initial_heuristic()
+        best_solution = np.unique(lloyd_clusters)
         self.clusters = self.__reassign_points_to_clusters(best_solution)
 
         # Mark the number of iterations taken to converge
         nochange = 0
         iteration = 1
-        tabu_list = np.empty((self.k, 0))
+        tabu_list = best_solution.reshape((self.k, 1))
 
         # Continue until the change in the objective function value is not
         # significant enough, for max_iter iterations
+        best_ssq = self.__calculate_sum_of_squares(self.clusters)
         while nochange < max_iter:  # TODO: Add here total max iterations num
-            prev_ssq = self.__calculate_sum_of_squares()
 
             if self.verbose:
-                print("initial sum of squares: ", prev_ssq)
+                print("initial sum of squares: ", best_ssq)
             # Build new solution from neighborhood function
             new_solution = self.__tabu_neighborhood_search(best_solution,
                                                            tabu_list)
@@ -306,23 +309,31 @@ class KMeans(object):
             if self.verbose:
                 print('new solution found on __tabu_neighborhood_search',
                       new_solution)
+                print('tabu_list: ', tabu_list)
             # Reassign points to new clusters
             new_clusters = self.__reassign_points_to_clusters(new_solution)
             # Calculate new objective function value
-            ssq = self.__calculate_sum_of_squares()
+            ssq = self.__calculate_sum_of_squares(new_clusters)
             if self.verbose:
                 print('new ssq: ', ssq)
-                print('improvement: ', prev_ssq - ssq)
-            # Check if change in objective function is significant
-            if (prev_ssq - ssq) < threshold:
+                print('improvement: ', best_ssq - ssq)
+            if ssq < best_ssq:
+                best_ssq = ssq
+                best_solution = new_solution
+                self.clusters = new_clusters
+                # Check if change in objective function is significant
+                if (best_ssq - ssq) < threshold:
+                    nochange += 1
+                else:
+                    nochange = 0
+            else:
                 nochange += 1
-            self.clusters = new_clusters
             if self.verbose:
                 print('End of iteration: ', iteration)
             iteration += 1
 
         print('tabu_list: ', tabu_list)
-        return self.clusters, ssq
+        return self.clusters, best_ssq
 
 
 if __name__ == "__main__":
@@ -370,8 +381,8 @@ if __name__ == "__main__":
     # METAHEURISTICS
     print('Tabu Search METAHEURISTIC')
     f, ssq = heu.tabu_search_metaheuristic(threshold)
-    plot_clustering_results(Y, le.fit_transform(f),
-                            'K-MEANS++', label, 'kmeans++')
+    # plot_clustering_results(Y, le.fit_transform(f),
+    #                         'K-MEANS++', label, 'kmeans++')
     print('Sum of squares:: ', ssq)
     # print('Sum of squares:: ', ssq)
 
