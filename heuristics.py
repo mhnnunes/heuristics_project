@@ -209,20 +209,47 @@ class KMeans(object):
         self.clusters = self.__reassign_points_to_clusters(centers_indexes)
         return self.clusters, self.__calculate_sum_of_squares(self.clusters)
 
-    def k_furthest_initial_heuristic(self):
+    def k_furthest_initial_heuristic(self, alpha=0.0):
         self.__init_clusters('k_furthest_initial_heuristic')
         # Choose 1 point randomly
         centers_indexes = np.zeros(self.k, dtype=int)
         centers_indexes[0] = np.random.randint(self.npoints, size=1)
+        if self.verbose:
+            print('[K-FURTHEST] initial point on kfurthest: ',
+                  centers_indexes[0])
         # Assign to the k-1 remainder centers the indexes of the k-1 points
         # that are further away from the current center
         # argsort return the indexes which would sort the array in ascending
         # order, then we take the last k-1 elements of this array with
         # [(self.k-1):] and return it backwards with [::-1]
         if self.k > 1:
-            centers_indexes[1:] = \
-                np.argsort(self.distances[int(centers_indexes[0]), :])[-(self.k -
-                                                                         1):][::-1]
+            # Get array containing distances from all points
+            # to the first chosen point
+            dists = self.distances[int(centers_indexes[0]), :]
+            ordered = np.argsort(dists)
+            if alpha > 0.0:
+                if self.verbose:
+                    print('[K-FURTHEST] choosing using alpha: ', alpha)
+                # Choose k-1 points that are furthest away from this point
+                maxdist = dists[ordered[-1]]
+                # Take the indexes of the points which are further than
+                # a fraction alpha of maxdist from the initial point
+                cut_on_distance = np.where(dists >= (maxdist -
+                                           alpha * (maxdist)))[0]
+                if self.verbose:
+                    print('[K-FURTHEST] cut_on_distance shape: ',
+                          cut_on_distance.shape, cut_on_distance)
+                if cut_on_distance.shape[0] < (self.k - 1):
+                    return False, False
+                else:
+                    centers_indexes[1:] = np.random.choice(cut_on_distance,
+                                                           size=(self.k - 1),
+                                                           replace=False)
+            else:
+                centers_indexes[1:] = ordered[-(self.k - 1):][::-1]
+
+        if self.verbose:
+            print('[K-FURTHEST] centers: ', centers_indexes)
         # return centers_indexes
         self.clusters = self.__reassign_points_to_clusters(centers_indexes)
         return self.clusters, self.__calculate_sum_of_squares(self.clusters)
@@ -335,6 +362,57 @@ class KMeans(object):
         print('tabu_list: ', tabu_list)
         return self.clusters, best_ssq
 
+    def GRASP_metaheuristic(self, alpha, n_iter=80):
+        """
+        Use a greedy random approach on the initialization:
+        - alpha na kfurthest:
+            - escolher o mais longe quando alpha for igual a 0
+            - dar chance para os outros quando alpha for maior que 0
+        """
+        # lembrar de inicializar com greedy random
+        clusters, best_ssq = self.k_furthest_initial_heuristic(alpha=alpha)
+        best_solution = np.unique(clusters)
+        if self.verbose:
+            print('[GRASP] initial solution: ', np.unique(clusters), best_ssq)
+
+        for i in range(n_iter):
+            # greedy random
+            self.seed += 1
+            prev_clusters, prev_ssq = \
+                self.k_furthest_initial_heuristic(alpha=alpha)
+            current_solution = np.unique(prev_clusters)
+            if self.verbose:
+                print('[GRASP] greedy random solution: ',
+                      current_solution, prev_ssq)
+
+            new_clusters, new_ssq = self.lloyd_local_search(current_solution,
+                                                            n_iter)
+            if self.verbose:
+                print('[GRASP] after lloyd solution: ',
+                      np.unique(new_clusters), new_ssq)
+                print('[GRASP] improvement: ', new_ssq - best_ssq)
+
+            if new_ssq < best_ssq:
+                best_solution = np.unique(new_clusters)
+                best_ssq = new_ssq
+                if self.verbose:
+                    print('[GRASP] updating best ssq: ', best_solution,
+                          best_ssq)
+
+        self.clusters = self.__reassign_points_to_clusters(best_solution)
+        return self.clusters, self.__calculate_sum_of_squares(self.clusters)
+
+    def GA_metaheuristic(self):
+        """
+            fitness: soma das distancias entre os centros
+            (vai virar mais ou menos a kfurthest de novo)
+            crossover de ponto
+            mutação de ponto tb
+            definir parametros (epocas, tamanho da pop, etc)
+            fazer usando o DEAP
+        """
+        pass
+
 
 if __name__ == "__main__":
     filename = argv[1]
@@ -347,8 +425,8 @@ if __name__ == "__main__":
     X = X.values
     # print(X)
     threshold = 10
-    Y = tsne.fit_transform(scale(X))
-    heu = KMeans(X, 1, 2, True)
+    # Y = tsne.fit_transform(scale(X))
+    heu = KMeans(X, 1, 3, True)
     # print("LLOYD HEURISTIC")
     # c, ssq = heu.lloyd_local_search(heu.lloyd_initial_heuristic(), threshold)
     # # print(le.fit_transform(c))
@@ -379,10 +457,16 @@ if __name__ == "__main__":
     # print('Sum of squares:: ', ssq)
 
     # METAHEURISTICS
-    print('Tabu Search METAHEURISTIC')
-    f, ssq = heu.tabu_search_metaheuristic(threshold)
+    # print('Tabu Search METAHEURISTIC')
+    # f, ssq = heu.tabu_search_metaheuristic(threshold)
+    # # plot_clustering_results(Y, le.fit_transform(f),
+    # #                         'K-MEANS++', label, 'kmeans++')
+    # print('Sum of squares:: ', ssq)
+    print('GRASP METAHEURISTIC')
+    f, ssq = heu.GRASP_metaheuristic(alpha=0.5, n_iter=threshold)
     # plot_clustering_results(Y, le.fit_transform(f),
     #                         'K-MEANS++', label, 'kmeans++')
+    print('Final solution: ', np.unique(f))
     print('Sum of squares:: ', ssq)
     # print('Sum of squares:: ', ssq)
 
