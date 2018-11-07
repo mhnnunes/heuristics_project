@@ -8,8 +8,11 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import make_blobs
 
 
-def read_input(filename):
-    return pd.read_csv(filename, delimiter=',')
+def read_input(filename, header=True):
+    if header:
+        return pd.read_csv(filename, delimiter=',')
+    else:
+        return pd.read_csv(filename, delimiter=',', header=header)
 
 
 def parse_breast_cancer(data):
@@ -25,6 +28,34 @@ def parse_breast_cancer(data):
     data = data.drop('Unnamed: 32', axis=1)
     data['diagnosis'] = data['diagnosis'].map({'M': 1, 'B': 0})
     return data.drop('diagnosis', axis=1), data['diagnosis']
+
+
+def parse_iris(data):
+    """ Pre-process data from the Iris dataset
+    http://archive.ics.uci.edu/ml/datasets/Iris
+    Arguments:
+        data {pandas.DataFrame} -- DataFrame containing raw unprocessed data
+    Returns:
+        data {pandas.DataFrame} -- DataFrame containing data without
+        labels and unnecessary info
+    """
+    data = data.drop('Id', axis=1)
+    data['Species'] = data['Species'].map({'Iris-setosa': 0,
+                                           'Iris-versicolor': 1,
+                                           'Iris-virginica': 2})
+    return data.drop('Species', axis=1), data['Species']
+
+
+def parse_wine(data):
+    """ Pre-process data from the Wine dataset
+    http://archive.ics.uci.edu/ml/datasets/Wine
+    Arguments:
+        data {pandas.DataFrame} -- DataFrame containing raw unprocessed data
+    Returns:
+        data {pandas.DataFrame} -- DataFrame containing data without
+        labels and unnecessary info
+    """
+    return data.drop(0, axis=1), data[0]
 
 
 def parse_wine_quality(data):
