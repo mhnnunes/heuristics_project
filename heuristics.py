@@ -4,13 +4,17 @@
 
 import numpy as np
 from sys import argv
+from deap import base
+from deap import tools
+from deap import creator
+from deap import algorithms
 from io_utils import read_input
-from sklearn.manifold import TSNE  # Dimensionality reduction for visualization
-from sklearn.preprocessing import scale
 from io_utils import parse_breast_cancer
-from io_utils import plot_clustering_results
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics.pairwise import euclidean_distances
+# Dimensionality reduction for visualization
+# from sklearn.manifold import TSNE
+# from sklearn.preprocessing import scale
 
 
 class KMeans(object):
@@ -365,11 +369,11 @@ class KMeans(object):
     def GRASP_metaheuristic(self, alpha, n_iter=80):
         """
         Use a greedy random approach on the initialization:
-        - alpha na kfurthest:
-            - escolher o mais longe quando alpha for igual a 0
-            - dar chance para os outros quando alpha for maior que 0
+        - alpha determines the rate of randomness:
+            - pick the furthest k points when alpha is 0.0
+            - pick other points with probability equal to alpha
         """
-        # lembrar de inicializar com greedy random
+        # build initial solution using greedy ransdom approach
         clusters, best_ssq = self.k_furthest_initial_heuristic(alpha=alpha)
         best_solution = np.unique(clusters)
         if self.verbose:
@@ -402,7 +406,62 @@ class KMeans(object):
         self.clusters = self.__reassign_points_to_clusters(best_solution)
         return self.clusters, self.__calculate_sum_of_squares(self.clusters)
 
-    def GA_metaheuristic(self):
+    def __GA_evaluate_individual(self, individual):
+        return np.sum(self.distances[individual[0], individual[0:]]),
+
+    def __GA_mutate_individual(self, individual, indpb):
+        pbs = np.random.random(size=len(individual))
+        for i in range(len(individual)):
+            if pbs[i] > indpb:
+                new = np.random.randint(self.CENTERS_MIN,
+                                        self.CENTERS_MAX)
+                while new in individual:
+                    new = np.random.randint(self.CENTERS_MIN,
+                                            self.CENTERS_MAX)
+                individual[i] = new
+        return individual,
+
+    def __GA_evolve(self):
+        creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+        creator.create("Individual", list, fitness=creator.FitnessMin)
+        toolbox = base.Toolbox()
+        self.CENTERS_MIN, self.CENTERS_MAX = 0, (self.npoints - 1)
+        # N_CYCLES = 1
+        # for i in range(self.k):
+        #     toolbox.register("attr_int", np.random.randint, self.CENTERS_MIN,
+        #                      self.CENTERS_MAX)
+        toolbox.register('indices', np.random.choice,
+                         list(range(self.npoints)), size=self.k,
+                         replace=False)
+        toolbox.register('individual', tools.initIterate, creator.Individual,
+                         toolbox.indices)
+        # toolbox.register("individual", tools.initCycle, creator.Individual,
+        #                  [toolbox.attr_int] * self.k, n=N_CYCLES)
+        toolbox.register("population", tools.initRepeat, list,
+                         toolbox.individual)
+        toolbox.register("evaluate", self.__GA_evaluate_individual)
+        toolbox.register("mate", tools.cxUniform, indpb=0.5)
+        toolbox.register("mutate", self.__GA_mutate_individual, indpb=0.5)
+        toolbox.register("select", tools.selTournament, tournsize=2)
+        hof = tools.HallOfFame(1)
+        stats = tools.Statistics(lambda ind: ind.fitness.values)
+        stats.register("avg", np.mean)
+        stats.register("std", np.std)
+        stats.register("min", np.min)
+        stats.register("max", np.max)
+        pop = toolbox.population(n=25)
+        if self.verbose:
+            print(pop)
+        pop, log = algorithms.eaSimple(pop, toolbox,
+                                       cxpb=0.6,
+                                       mutpb=0.4,
+                                       ngen=50,
+                                       stats=stats,
+                                       halloffame=hof,
+                                       verbose=self.verbose)
+        return pop, log, hof
+
+    def GA_metaheuristic(self, threshold=10):
         """
             fitness: soma das distancias entre os centros
             (vai virar mais ou menos a kfurthest de novo)
@@ -411,13 +470,20 @@ class KMeans(object):
             definir parametros (epocas, tamanho da pop, etc)
             fazer usando o DEAP
         """
-        pass
-
+        self.__init_clusters("GA METAHEURISTIC")
+        pop, log, hof = self.__GA_evolve()
+        if self.verbose:
+            print('final population:', pop)
+            print('final hof', hof)
+        # self.clusters = self.__reassign_points_to_clusters(hof[0])
+        # ssq = self.__calculate_sum_of_squares(self.clusters)
+        self.clusters, ssq = self.lloyd_local_search(hof[0], threshold)
+        return self.clusters, ssq
 
 if __name__ == "__main__":
     filename = argv[1]
     data = read_input(filename)
-    tsne = TSNE(verbose=1, perplexity=40, n_iter=4000)
+    # tsne = TSNE(verbose=1, perplexity=40, n_iter=4000)
     le = LabelEncoder()
     # pre-process data
     # pre-processing breast cancer data
@@ -462,8 +528,14 @@ if __name__ == "__main__":
     # # plot_clustering_results(Y, le.fit_transform(f),
     # #                         'K-MEANS++', label, 'kmeans++')
     # print('Sum of squares:: ', ssq)
-    print('GRASP METAHEURISTIC')
-    f, ssq = heu.GRASP_metaheuristic(alpha=0.5, n_iter=threshold)
+    # print('GRASP METAHEURISTIC')
+    # f, ssq = heu.GRASP_metaheuristic(alpha=0.5, n_iter=threshold)
+    # # plot_clustering_results(Y, le.fit_transform(f),
+    # #                         'K-MEANS++', label, 'kmeans++')
+    # print('Final solution: ', np.unique(f))
+    # print('Sum of squares:: ', ssq)
+    print('GA METAHEURISTIC')
+    f, ssq = heu.GA_metaheuristic()
     # plot_clustering_results(Y, le.fit_transform(f),
     #                         'K-MEANS++', label, 'kmeans++')
     print('Final solution: ', np.unique(f))
