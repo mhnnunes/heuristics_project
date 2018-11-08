@@ -480,6 +480,33 @@ class KMeans(object):
         self.clusters, ssq = self.lloyd_local_search(hof[0], threshold)
         return self.clusters, ssq
 
+    def __ILS_mutate_individual(self, individual):
+        random_index = np.random.randint(0, self.k - 1)
+        individual[random_index] = np.random.randint(0, self.npoints - 1)
+        return individual
+
+    def ILS_metaheuristic(self, threshold=10):
+        self.__init_clusters("ILS metaheuristic")
+        initial_clusters, ssq = self.lloyd_initial_heuristic()
+        best_solution, best_ssq = \
+            self.lloyd_local_search(np.unique(initial_clusters), threshold)
+        nochange = 0
+        while nochange < threshold:
+            perturbed_solution = \
+                self.__ILS_mutate_individual(np.unique(best_solution))
+            if self.verbose:
+                print("[ILS] perturbed solution", perturbed_solution)
+            new_clusters, new_ssq = \
+                self.lloyd_local_search(perturbed_solution, threshold)
+            if new_ssq < best_ssq:
+                best_solution = new_clusters
+                best_ssq = new_ssq
+                nochange = 0
+            else:
+                nochange += 1
+        return best_solution, best_ssq
+
+
 if __name__ == "__main__":
     filename = argv[1]
     data = read_input(filename)
@@ -530,17 +557,16 @@ if __name__ == "__main__":
     # print('Sum of squares:: ', ssq)
     # print('GRASP METAHEURISTIC')
     # f, ssq = heu.GRASP_metaheuristic(alpha=0.5, n_iter=threshold)
-    # # plot_clustering_results(Y, le.fit_transform(f),
-    # #                         'K-MEANS++', label, 'kmeans++')
     # print('Final solution: ', np.unique(f))
     # print('Sum of squares:: ', ssq)
-    print('GA METAHEURISTIC')
-    f, ssq = heu.GA_metaheuristic()
-    # plot_clustering_results(Y, le.fit_transform(f),
-    #                         'K-MEANS++', label, 'kmeans++')
+    # print('GA METAHEURISTIC')
+    # f, ssq = heu.GA_metaheuristic()
+    # print('Final solution: ', np.unique(f))
+    # print('Sum of squares:: ', ssq)
+    print('ILS METAHEURISTIC')
+    f, ssq = heu.ILS_metaheuristic()
     print('Final solution: ', np.unique(f))
     print('Sum of squares:: ', ssq)
-    # print('Sum of squares:: ', ssq)
 
 
 # import pandas as pd
