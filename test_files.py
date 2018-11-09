@@ -70,7 +70,7 @@ def get_results(X, labels, filename, verbose, plots_dir, outdir):
     # Define values for k and put it in a loop
     results = pd.DataFrame(columns=['size', 'method', 'k', 'seed',
                                     'time', 'ssq'])
-    for k in range(1, 11):
+    for k in range(2, 11):
         for random_seed in range(30):
             kmns = KMeans(X, random_seed, k, verbose)
             heuristics_list = \
@@ -79,6 +79,35 @@ def get_results(X, labels, filename, verbose, plots_dir, outdir):
                  (kmns.k_means_plus_plus, 'kmeans++'),
                  (kmns.k_furthest_initial_heuristic, 'k-furthest'),
                  (kmns.k_popular_initial_heuristic, 'k-popular')]
+            for heuristic, h_name in heuristics_list:
+                success, result = \
+                    run_heuristic_on_dataset(heuristic, X, k,
+                                             h_name, filename,
+                                             plots_dir, labels,
+                                             random_seed, verbose)
+                if verbose:
+                    print ('result shape: ', result.shape)
+                results = pd.concat([results, result], axis=0)
+                if verbose:
+                    print ('total results shape: ', results.shape)
+    # Removed polluting code
+    results.to_csv(join(outdir, filename.split('.')[0] + '_' +
+                        'results.csv'),
+                   index=False)
+
+
+def get_metaheuristics_results(X, labels, filename, verbose, plots_dir, outdir):
+    # Define values for k and put it in a loop
+    results = pd.DataFrame(columns=['size', 'method', 'k', 'seed',
+                                    'time', 'ssq'])
+    for k in range(2, 11):
+        for random_seed in range(30):
+            kmns = KMeans(X, random_seed, k, verbose)
+            heuristics_list = \
+                [(kmns.tabu_search_metaheuristic, 'tabu'),
+                 (kmns.GRASP_metaheuristic, 'grasp'),
+                 (kmns.GA_metaheuristic, 'ga'),
+                 (kmns.ILS_metaheuristic, 'ils')]
             for heuristic, h_name in heuristics_list:
                 success, result = \
                     run_heuristic_on_dataset(heuristic, X, k,
@@ -115,7 +144,8 @@ def test_synthetic_datasets(datadir, outdir, verbose=False):
             print('before parsing data')
             X, labels = parse_synthetic_dataset(raw_data)
             print('after parsing data')
-            get_results(X, labels, filename, verbose, plots_dir, outdir)
+            get_metaheuristics_results(X, labels, filename, verbose,
+                                       plots_dir, outdir)
 
 
 def test_real_datasets(datadir, outdir, verbose=False):
@@ -133,7 +163,8 @@ def test_real_datasets(datadir, outdir, verbose=False):
                       filename, '============')
             print('before reading data')
             if 'wine' in filename:
-                raw_data = read_input(join(dataset_dir, filename), header=None)
+                raw_data = read_input(join(dataset_dir, filename),
+                                      header=False)
                 X, labels = parse_wine(raw_data)
             elif 'iris' in filename:
                 raw_data = read_input(join(dataset_dir, filename))
@@ -142,7 +173,8 @@ def test_real_datasets(datadir, outdir, verbose=False):
                 raw_data = read_input(join(dataset_dir, filename))
                 X, labels = parse_breast_cancer(raw_data)
             print('after reading data')
-            get_results(X, labels, filename, verbose, plots_dir, outdir)
+            get_metaheuristics_results(X, labels, filename, verbose,
+                                       plots_dir, outdir)
 
 
 if __name__ == "__main__":
@@ -159,3 +191,35 @@ if __name__ == "__main__":
         test_synthetic_datasets(args.source, args.output, args.verbose)
     else:
         test_real_datasets(args.source, args.output, args.verbose)
+
+
+
+import argparse
+import numpy as np
+import pandas as pd
+from os import getcwd
+from os import listdir
+from os.path import join
+from os.path import isdir
+from heuristics import KMeans
+from io_utils import read_input
+from timeit import default_timer
+# Dataset parsers
+from io_utils import parse_wine
+from io_utils import parse_iris
+from io_utils import parse_breast_cancer
+from io_utils import parse_synthetic_dataset
+
+
+# datadir = 'dataset/real/'
+# outdir = 'metaheuristics_results/'
+# filename = 'wine.csv'
+# dataset_dir = join(getcwd(), datadir)
+# raw_data = read_input(join(dataset_dir, filename), header=None)
+# X, labels = parse_wine(raw_data)
+# random_seed = 1
+# k = 2
+# verbose = True
+
+# kmns = KMeans(X, random_seed, k, verbose)
+# f, ssq = kmns.GRASP_metaheuristic()
