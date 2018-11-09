@@ -4,6 +4,10 @@
 
 import pandas as pd
 from sys import argv
+from os import getcwd
+from os import listdir
+from os.path import join
+from os.path import isdir
 import matplotlib.pyplot as plt
 from sklearn.datasets import make_blobs
 
@@ -12,7 +16,7 @@ def read_input(filename, header=True):
     if header:
         return pd.read_csv(filename, delimiter=',')
     else:
-        return pd.read_csv(filename, delimiter=',', header=header)
+        return pd.read_csv(filename, delimiter=',', header=None)
 
 
 def parse_breast_cancer(data):
@@ -27,7 +31,7 @@ def parse_breast_cancer(data):
     data = data.drop('id', axis=1)
     data = data.drop('Unnamed: 32', axis=1)
     data['diagnosis'] = data['diagnosis'].map({'M': 1, 'B': 0})
-    return data.drop('diagnosis', axis=1), data['diagnosis']
+    return data.drop('diagnosis', axis=1).values, data['diagnosis']
 
 
 def parse_iris(data):
@@ -43,7 +47,7 @@ def parse_iris(data):
     data['Species'] = data['Species'].map({'Iris-setosa': 0,
                                            'Iris-versicolor': 1,
                                            'Iris-virginica': 2})
-    return data.drop('Species', axis=1), data['Species']
+    return data.drop('Species', axis=1).values, data['Species']
 
 
 def parse_wine(data):
@@ -55,7 +59,7 @@ def parse_wine(data):
         data {pandas.DataFrame} -- DataFrame containing data without
         labels and unnecessary info
     """
-    return data.drop(0, axis=1), data[0]
+    return data.drop(0, axis=1).values, data[0]
 
 
 def parse_wine_quality(data):
@@ -108,7 +112,8 @@ def parse_synthetic_dataset(data):
     return data[['X', 'Y']].values, labels
 
 
-def plot_clustering_results(Y, results, heuristic, actual_clusters=None, fn=''):
+def plot_clustering_results(Y, results, heuristic, actual_clusters=None,
+                            fn=''):
     # PLOT CLUSTERING RESULT
     print('plotting results, ', fn)
     if actual_clusters is not None:
@@ -128,6 +133,22 @@ def plot_clustering_results(Y, results, heuristic, actual_clusters=None, fn=''):
         ax1.set_title(heuristic)
         plt.savefig(fn)
     plt.close('all')
+
+
+def parse_test_results(results_dir):
+    results_time = pd.DataFrame(columns=['dataset', 'count',
+                                         'mean', 'std', '50%'])
+    results_ssq = pd.DataFrame(columns=['dataset', 'count',
+                                        'mean', 'std', '50%'])
+    for f in listdir(results_dir):
+        filename = join(results_dir, f)
+        if not isdir(filename):
+            df = pd.read_csv(filename, delimiter=',')
+            time_results = df.groupby(['method', 'k']).describe()['time']
+            ssq_results = df.groupby(['method', 'k']).describe()['ssq']
+            time_results = time_results[['count', 'mean', 'std', '50%']]
+            ssq_results = ssq_results[['count', 'mean', 'std', '50%']]
+
 
 
 if __name__ == "__main__":
