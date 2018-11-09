@@ -72,6 +72,9 @@ class KMeans(object):
             for center in centers_indexes:
                 # Get indexes of points assigned to center
                 points_in_cluster = np.where(self.clusters == center)[0]
+                # if self.verbose:
+                #     print('[lloyd_local_search] points_in_cluster:',
+                #           points_in_cluster)
                 # Calculate centroid
                 centroid = np.mean(self.data[points_in_cluster, :], axis=0)
                 # print(centroid)
@@ -366,7 +369,7 @@ class KMeans(object):
         print('tabu_list: ', tabu_list)
         return self.clusters, best_ssq
 
-    def GRASP_metaheuristic(self, alpha, n_iter=80):
+    def GRASP_metaheuristic(self, alpha=0.5, n_iter=10):
         """
         Use a greedy random approach on the initialization:
         - alpha determines the rate of randomness:
@@ -568,30 +571,3 @@ if __name__ == "__main__":
     print('Final solution: ', np.unique(f))
     print('Sum of squares:: ', ssq)
 
-
-# import pandas as pd
-# from io_utils import read_input 
-# import matplotlib.pyplot as plt
-# from sklearn.manifold import TSNE
-# from sklearn.cluster import KMeans
-# from sklearn.preprocessing import scale
-
-# filename = 'dataset/breast_cancer.csv' 
-# data = read_input(filename)
-# pre-process data
-# pre-processing breast cancer data
-# data = data.drop('id', axis=1)
-# data = data.drop('Unnamed: 32', axis=1)
-# data['diagnosis'] = data['diagnosis'].map({'M': 1, 'B': 0})
-# data = data.drop('diagnosis', axis=1)
-# print(data)
-# print(data.values)
-
-# datas = pd.DataFrame(scale(data))
-# datas.columns = list(data.columns)
-
-# X = datas.values
-# tsne = TSNE(verbose=1, perplexity=40, n_iter=4000)
-# Y = tsne.fit_transform(X)
-# kmns = KMeans(n_clusters=2, init='k-means++', n_init=10, max_iter=300, tol=0.0001, precompute_distances='auto', verbose=0, random_state=None, copy_x=True, n_jobs=1, algorithm='auto')
-# kY = kmns.fit_predict(X)
