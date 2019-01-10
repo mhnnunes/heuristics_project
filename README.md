@@ -23,3 +23,7 @@ In order to install the dependencies, run the following code in your terminal:
 pip3 install --user -f requirements.txt  
 ```  
 
+## Authors  
+
+[Matheus Henrique do Nascimento Nunes](https://github.com/mhnnunes)  
+[Tarsila Bessa Nogueira Assunção](https://github.com/tarsilab)  
