@@ -10,11 +10,12 @@ from deap import creator
 from deap import algorithms
 from io_utils import read_input
 from io_utils import parse_breast_cancer
+from io_utils import plot_clustering_results
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics.pairwise import euclidean_distances
 # Dimensionality reduction for visualization
-# from sklearn.manifold import TSNE
-# from sklearn.preprocessing import scale
+from sklearn.manifold import TSNE
+from sklearn.preprocessing import scale
 
 
 class KMeans(object):
@@ -511,63 +512,66 @@ class KMeans(object):
 
 
 if __name__ == "__main__":
-    filename = argv[1]
+    filename = 'dataset/real/breast_cancer.csv'
     data = read_input(filename)
-    # tsne = TSNE(verbose=1, perplexity=40, n_iter=4000)
+    # Reduce dimensionality of data for visualization
+    tsne = TSNE(verbose=1, perplexity=40, n_iter=4000)
+    # Label encoder for true labels
     le = LabelEncoder()
-    # pre-process data
-    # pre-processing breast cancer data
+    # Pre-processing breast cancer data
     X, label = parse_breast_cancer(data)
-    X = X.values
     # print(X)
     threshold = 10
-    # Y = tsne.fit_transform(scale(X))
-    heu = KMeans(X, 1, 3, True)
-    # print("LLOYD HEURISTIC")
-    # c, ssq = heu.lloyd_local_search(heu.lloyd_initial_heuristic(), threshold)
-    # # print(le.fit_transform(c))
-    # plot_clustering_results(Y, le.fit_transform(c),
-    #                         'LLOYD', label, 'lloyd')
-    # print('Sum of squares:: ', ssq)
-    # print('MACQUEEN HEURISTIC')
-    # d, ssq = heu.macqueen_heuristic()
-    # # print(d)
-    # plot_clustering_results(Y, le.fit_transform(d),
-    #                         'MACQUEEN', label)
-    # print('Sum of squares:: ', ssq)
-    # print('K FURTHEST HEURISTIC')
-    # e, ssq = heu.k_furthest_initial_heuristic()
-    # # print(e)
-    # plot_clustering_results(Y, le.fit_transform(e), 'K-FURTHEST',
-    #                         label)
-    # print('Sum of squares:: ', ssq)
-    # print('K POPULAR HEURISTIC')
-    # f, ssq = heu.k_popular_initial_heuristic()
-    # plot_clustering_results(Y, le.fit_transform(f), 'K-POPULAR',
-    #                         label)
-    # print('Sum of squares:: ', ssq)
-    # print('K-MEANS++ HEURISTIC')
-    # f, ssq = heu.lloyd_local_search(heu.k_means_plus_plus(), threshold)
-    # plot_clustering_results(Y, le.fit_transform(f),
-    #                         'K-MEANS++', label, 'kmeans++')
-    # print('Sum of squares:: ', ssq)
-
-    # METAHEURISTICS
-    # print('Tabu Search METAHEURISTIC')
-    # f, ssq = heu.tabu_search_metaheuristic(threshold)
-    # # plot_clustering_results(Y, le.fit_transform(f),
-    # #                         'K-MEANS++', label, 'kmeans++')
-    # print('Sum of squares:: ', ssq)
-    # print('GRASP METAHEURISTIC')
-    # f, ssq = heu.GRASP_metaheuristic(alpha=0.5, n_iter=threshold)
-    # print('Final solution: ', np.unique(f))
-    # print('Sum of squares:: ', ssq)
-    # print('GA METAHEURISTIC')
-    # f, ssq = heu.GA_metaheuristic()
-    # print('Final solution: ', np.unique(f))
-    # print('Sum of squares:: ', ssq)
-    print('ILS METAHEURISTIC')
-    f, ssq = heu.ILS_metaheuristic()
-    print('Final solution: ', np.unique(f))
+    Y = tsne.fit_transform(scale(X))
+    heu = KMeans(X, 1, 2, True)
+    print("LLOYD HEURISTIC")
+    c, ssq = heu.lloyd_local_search(heu.lloyd_initial_heuristic()[0],
+                                    threshold)
+    plot_clustering_results(Y, le.fit_transform(c),
+                            'LLOYD', label, 'lloyd')
+    print('Sum of squares:: ', ssq)
+    print('MACQUEEN HEURISTIC')
+    d, ssq = heu.macqueen_heuristic()
+    plot_clustering_results(Y, le.fit_transform(d),
+                            'MACQUEEN', label, 'macqueen')
+    print('Sum of squares:: ', ssq)
+    print('K FURTHEST HEURISTIC')
+    e, ssq = heu.k_furthest_initial_heuristic()
+    plot_clustering_results(Y, le.fit_transform(e), 'K-FURTHEST',
+                            label, 'k-furthest')
+    print('Sum of squares:: ', ssq)
+    print('K POPULAR HEURISTIC')
+    f, ssq = heu.k_popular_initial_heuristic()
+    plot_clustering_results(Y, le.fit_transform(f), 'K-POPULAR',
+                            label, 'k-popular')
+    print('Sum of squares:: ', ssq)
+    print('K-MEANS++ HEURISTIC')
+    f, ssq = heu.lloyd_local_search(heu.k_means_plus_plus()[0], threshold)
+    plot_clustering_results(Y, le.fit_transform(f),
+                            'K-MEANS++', label, 'kmeans++')
     print('Sum of squares:: ', ssq)
 
+    # METAHEURISTICS
+    print('Tabu Search METAHEURISTIC')
+    f, ssq = heu.tabu_search_metaheuristic(threshold)
+    plot_clustering_results(Y, le.fit_transform(f),
+                            'Tabu Search', label, 'tabu_search')
+    print('Sum of squares:: ', ssq)
+    print('GRASP METAHEURISTIC')
+    f, ssq = heu.GRASP_metaheuristic(alpha=0.5, n_iter=threshold)
+    plot_clustering_results(Y, le.fit_transform(f),
+                            'GRASP', label, 'grasp')
+    print('Final solution: ', np.unique(f))
+    print('Sum of squares:: ', ssq)
+    print('GA METAHEURISTIC')
+    f, ssq = heu.GA_metaheuristic()
+    plot_clustering_results(Y, le.fit_transform(f),
+                            'GA', label, 'ga')
+    print('Final solution: ', np.unique(f))
+    print('Sum of squares:: ', ssq)
+    print('ILS METAHEURISTIC')
+    f, ssq = heu.ILS_metaheuristic()
+    plot_clustering_results(Y, le.fit_transform(f),
+                            'ILS', label, 'ils')
+    print('Final solution: ', np.unique(f))
+    print('Sum of squares:: ', ssq)
