@@ -4,12 +4,16 @@
 
 import pandas as pd
 from sys import argv
+import seaborn as sns
+# OS Imports
 from os import getcwd
 from os import listdir
 from os.path import join
 from os.path import isdir
 import matplotlib.pyplot as plt
 from sklearn.datasets import make_blobs
+
+sns.set()
 
 
 def read_input(filename, header=True):
@@ -112,8 +116,7 @@ def parse_synthetic_dataset(data):
     return data[['X', 'Y']].values, labels
 
 
-def plot_clustering_results(Y, results, heuristic, actual_clusters=None,
-                            fn=''):
+def plot_clustering_results(Y, results, heuristic, actual_clusters=None, fn=''):
     # PLOT CLUSTERING RESULT
     print('plotting results, ', fn)
     if actual_clusters is not None:
@@ -136,19 +139,71 @@ def plot_clustering_results(Y, results, heuristic, actual_clusters=None,
 
 
 def parse_test_results(results_dir):
-    results_time = pd.DataFrame(columns=['dataset', 'count',
-                                         'mean', 'std', '50%'])
-    results_ssq = pd.DataFrame(columns=['dataset', 'count',
-                                        'mean', 'std', '50%'])
+    all_results = pd.DataFrame(columns=['type', 'size',
+                                        'method', 'k',
+                                        'seed', 'time', 'ssq'])
     for f in listdir(results_dir):
         filename = join(results_dir, f)
         if not isdir(filename):
+            print('reading file: ', filename)
+            spl = f.split('.')[0].split('_')
+            dataset_name = spl[0]
+            # + '_' + spl[1]
             df = pd.read_csv(filename, delimiter=',')
-            time_results = df.groupby(['method', 'k']).describe()['time']
-            ssq_results = df.groupby(['method', 'k']).describe()['ssq']
-            time_results = time_results[['count', 'mean', 'std', '50%']]
-            ssq_results = ssq_results[['count', 'mean', 'std', '50%']]
+            rows = df.shape[0]
+            name = pd.DataFrame([dataset_name] * rows, columns=['type'])
+            df = pd.concat([name, df], axis=1)
+            all_results = pd.concat([all_results, df], axis=0,
+                                    ignore_index=True)
+    all_results.to_csv(join(results_dir, 'all_results.csv'), sep=',',
+                       index=False)
+    all_results['method'] = all_results['method'].map(lambda x: x.upper())
+    # Make table for real results
+    real_results = \
+        all_results[(all_results['type'] != 'uniform') &
+                    (all_results['type'] != 'grid6') &
+                    (all_results['type'] != 'triangle')]
 
+    synth_results = \
+        all_results[(all_results['type'] == 'uniform') |
+                    (all_results['type'] == 'grid6') |
+                    (all_results['type'] == 'triangle')]
+    # Write to file
+    with open(join(results_dir, 'real_results_ssq.txt'), 'w') as f:
+        c = ['mean', 'std', '50%']
+        rr_df = real_results.groupby(['type', 'method'])[['time', 'ssq']]
+        f.write(rr_df.describe()['ssq'][c].to_latex(float_format='%.2f'))
+    # Time plot for real datasets
+    g = sns.FacetGrid(real_results, col='method', palette='Dark2')
+    g = (g.map(sns.pointplot, 'size', 'time', 'type',
+               palette='Dark2').add_legend().set_axis_labels('Size',
+                                                             'Time (s)'))
+    plt.savefig(join(results_dir, 'plot_real_time.pdf'))
+    # Plot MSSC by K for real datasets
+    g = sns.FacetGrid(real_results, col='method', palette='Dark2')
+    g = (g.map(sns.pointplot, 'k', 'ssq', 'type',
+               palette='Dark2').add_legend().set_axis_labels('K', 'MSSC'))
+    plt.savefig(join(results_dir, 'plot_k_real.pdf'))
+    # Do the same for synthetic dataset
+    with open(join(results_dir, 'synth_results_ssq.txt'), 'w') as f:
+        c = ['mean', 'std', '50%']
+        # Add grouping by size - UNCOMMENT below 
+        # rr_df = synth_results.groupby(['size', 'type', 'method']).describe()
+        # Remove grouping by size
+        rr_df = synth_results.groupby(['type', 'method']).describe()
+        f.write(rr_df[['ssq']]['ssq'][c].to_latex(float_format='%.2f'))
+    # Time plot for synthetic datasets
+    g = sns.FacetGrid(synth_results, col='method', palette='Dark2')
+    g = (g.map(sns.pointplot, 'size', 'time', 'type',
+               palette='Dark2').add_legend().set_axis_labels('Size',
+                                                             'Time (s)'))
+    plt.savefig(join(results_dir, 'plot_synth_time.pdf'))
+    # Plot MSSC by K for synthetic datasets
+    g = sns.FacetGrid(synth_results, col='method', row='type', palette='Dark2')
+    g = (g.map(sns.pointplot, 'k', 'ssq', 'size', palette='Dark2')
+         .add_legend(label_order=sorted(g._legend_data.keys(),
+                     key=int)).set_axis_labels('K', 'MSSC'))
+    plt.savefig(join(results_dir, 'plot_k_synth.pdf'))
 
 
 if __name__ == "__main__":
