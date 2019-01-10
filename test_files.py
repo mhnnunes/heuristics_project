@@ -17,13 +17,11 @@ from io_utils import parse_wine
 from io_utils import parse_iris
 from io_utils import parse_breast_cancer
 from io_utils import parse_synthetic_dataset
-# from io_utils import plot_clustering_results
 
 
 def run_heuristic_on_dataset(func, X, k, h_name, filename, plots_dir, labels,
                              seed, verbose):
     dataset_name = filename.split('.')[0]
-    # dataset_size = int(dataset_name.split('_')[1])
     dataset_size = int(X.shape[0])
     # BEGIN TEST: LLOYD HEURISTIC
     before = default_timer()
@@ -49,9 +47,6 @@ def run_heuristic_on_dataset(func, X, k, h_name, filename, plots_dir, labels,
                                             'ssq'])
     else:
         after = default_timer() - before
-        # plot_clustering_results(X, clusters, h_name, labels,
-        #                         join(plots_dir, dataset_name +
-        #                              '_k=' + str(k) + '_' + h_name + '.png'))
         return True, pd.DataFrame([[dataset_size,
                                     h_name,
                                     k,
@@ -90,7 +85,6 @@ def get_results(X, labels, filename, verbose, plots_dir, outdir):
                 results = pd.concat([results, result], axis=0)
                 if verbose:
                     print ('total results shape: ', results.shape)
-    # Removed polluting code
     results.to_csv(join(outdir, filename.split('.')[0] + '_' +
                         'results.csv'),
                    index=False)
@@ -119,7 +113,6 @@ def get_metaheuristics_results(X, labels, filename, verbose, plots_dir, outdir):
                 results = pd.concat([results, result], axis=0)
                 if verbose:
                     print ('total results shape: ', results.shape)
-    # Removed polluting code
     results.to_csv(join(outdir, filename.split('.')[0] + '_' +
                         'results.csv'),
                    index=False)
@@ -127,7 +120,6 @@ def get_metaheuristics_results(X, labels, filename, verbose, plots_dir, outdir):
 
 def test_synthetic_datasets(datadir, outdir, verbose=False):
     dataset_dir = join(getcwd(), datadir)
-    # result_dir = join(getcwd(), outdir)
     plots_dir = join(getcwd(), outdir, 'plots')
 
     for distribution in listdir(dataset_dir):
@@ -150,7 +142,6 @@ def test_synthetic_datasets(datadir, outdir, verbose=False):
 
 def test_real_datasets(datadir, outdir, verbose=False):
     dataset_dir = join(getcwd(), datadir)
-    # result_dir = join(getcwd(), outdir)
     plots_dir = join(getcwd(), outdir, 'plots')
 
     for filename in listdir(dataset_dir):
@@ -192,34 +183,3 @@ if __name__ == "__main__":
     else:
         test_real_datasets(args.source, args.output, args.verbose)
 
-
-
-import argparse
-import numpy as np
-import pandas as pd
-from os import getcwd
-from os import listdir
-from os.path import join
-from os.path import isdir
-from heuristics import KMeans
-from io_utils import read_input
-from timeit import default_timer
-# Dataset parsers
-from io_utils import parse_wine
-from io_utils import parse_iris
-from io_utils import parse_breast_cancer
-from io_utils import parse_synthetic_dataset
-
-
-# datadir = 'dataset/real/'
-# outdir = 'metaheuristics_results/'
-# filename = 'wine.csv'
-# dataset_dir = join(getcwd(), datadir)
-# raw_data = read_input(join(dataset_dir, filename), header=None)
-# X, labels = parse_wine(raw_data)
-# random_seed = 1
-# k = 2
-# verbose = True
-
-# kmns = KMeans(X, random_seed, k, verbose)
-# f, ssq = kmns.GRASP_metaheuristic()
